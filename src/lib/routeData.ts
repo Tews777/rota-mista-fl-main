@@ -34,12 +34,12 @@ function findColIndex(headers: string[], possibleNames: string[]): number {
 
 const COL_NAMES: Record<keyof typeof DEFAULT_COL, string[]> = {
   AT: ["task id", "at", "taskid", "at destino", "at origem"],
-  Gaiola: ["cage", "gaiola", "rota", "rota - de", "rota de", "corridor-cage/route", "corridor"],
+  Gaiola: ["corridor-cage/route", "corridor-cage", "cage", "gaiola", "rota", "rota - de", "rota de", "corridor"],
   BR: ["spx tracking num", "br", "tracking number", "spx tracking"],
-  TipoVeiculo: ["vehicle type", "tipo veiculo", "tipoveiculo", "modal", "modal - de", "modal de"],
+  TipoVeiculo: ["vehicle type", "tipo veiculo", "tipo de veiculo", "tipoveiculo", "modal", "modal - de", "modal de"],
   Bairro: ["neighborhood", "bairro"],
   Cidade: ["city", "cidade"],
-  SPR: ["spr", "number of order/to", "number of order", "qtd order"],
+  SPR: ["number of order/to", "number of order", "spr", "qtd order"],
   Cluster: ["cluster"],
   Paradas: ["number of stops", "paradas", "qtd. pacotes", "qtd pacotes"],
 };
