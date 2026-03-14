@@ -220,54 +220,46 @@ export interface SwapLabel {
 
 // Serializar RouteIndex para localStorage (converter Maps em objetos)
 export function serializeRouteIndex(index: RouteIndex): string {
-  const serialized = {
+  // Salvar só os records - os índices são reconstruídos ao desserializar
+  return JSON.stringify({
     records: index.records,
-    indexBR: Object.fromEntries(index.indexBR),
-    indexCluster: Object.fromEntries(index.indexCluster),
-    indexBairro: Object.fromEntries(index.indexBairro),
-  };
-  return JSON.stringify(serialized);
+  });
 }
 
-// Desserializar RouteIndex do localStorage (converter objetos em Maps)
+// Desserializar RouteIndex do localStorage (reconstruir Maps a partir dos records)
 export function deserializeRouteIndex(json: string): RouteIndex {
   try {
     const parsed = JSON.parse(json);
     
-    // Validar se tem os campos necessários
     if (!parsed.records || !Array.isArray(parsed.records)) {
       throw new Error("Invalid records format");
     }
-    
-    // Converter objetos em Maps, garantindo que os valores são arrays
+
+    // Reconstruir os índices a partir dos records
     const indexBR = new Map<string, RouteRecord[]>();
     const indexCluster = new Map<string, RouteRecord[]>();
     const indexBairro = new Map<string, RouteRecord[]>();
-    
-    if (parsed.indexBR && typeof parsed.indexBR === 'object') {
-      for (const [key, value] of Object.entries(parsed.indexBR)) {
-        if (Array.isArray(value)) {
-          indexBR.set(key, value as RouteRecord[]);
-        }
+
+    for (const rec of parsed.records) {
+      // Index by BR
+      if (rec.BR) {
+        if (!indexBR.has(rec.BR)) indexBR.set(rec.BR, []);
+        indexBR.get(rec.BR)!.push(rec);
+      }
+
+      // Index by Cluster
+      if (rec.Cluster) {
+        if (!indexCluster.has(rec.Cluster)) indexCluster.set(rec.Cluster, []);
+        indexCluster.get(rec.Cluster)!.push(rec);
+      }
+
+      // Index by Bairro
+      if (rec.Bairro) {
+        if (!indexBairro.has(rec.Bairro)) indexBairro.set(rec.Bairro, []);
+        indexBairro.get(rec.Bairro)!.push(rec);
       }
     }
-    
-    if (parsed.indexCluster && typeof parsed.indexCluster === 'object') {
-      for (const [key, value] of Object.entries(parsed.indexCluster)) {
-        if (Array.isArray(value)) {
-          indexCluster.set(key, value as RouteRecord[]);
-        }
-      }
-    }
-    
-    if (parsed.indexBairro && typeof parsed.indexBairro === 'object') {
-      for (const [key, value] of Object.entries(parsed.indexBairro)) {
-        if (Array.isArray(value)) {
-          indexBairro.set(key, value as RouteRecord[]);
-        }
-      }
-    }
-    
+
     return {
       records: parsed.records,
       indexBR,
