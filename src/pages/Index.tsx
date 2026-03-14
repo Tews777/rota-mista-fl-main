@@ -78,7 +78,6 @@ const Index = () => {
             ATOrigem: row.at_origem,
             ATDestino: row.at_destino,
             Bairro: row.bairro,
-            usuario: row.usuario || undefined,
           }))
         );
       } else if (error) {
@@ -254,7 +253,6 @@ const Index = () => {
       ATOrigem: original.AT,
       ATDestino: swap.AT,
       Bairro: swap.Bairro,
-      usuario: currentUsername || "guest",
     }));
 
     // Save to database (only the columns that exist in swap_history table)
