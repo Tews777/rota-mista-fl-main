@@ -254,7 +254,7 @@ const Index = () => {
       ATOrigem: original.AT,
       ATDestino: swap.AT,
       Bairro: swap.Bairro,
-      usuario: currentUsername,
+      usuario: currentUsername || "guest",
     }));
 
     // Save to database
@@ -272,8 +272,8 @@ const Index = () => {
         at_destino: e.ATDestino,
         bairro: e.Bairro,
       };
-      // Only add usuario if it exists (for backward compatibility)
-      if (e.usuario) {
+      // Only add usuario if it's a valid string
+      if (typeof e.usuario === "string" && e.usuario.trim()) {
         row.usuario = e.usuario;
       }
       return row;
