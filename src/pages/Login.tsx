@@ -15,46 +15,35 @@ const VALID_USERS = [
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
-    try {
-      // Validar credenciais locais
-      const user = VALID_USERS.find(
-        (u) => u.username === username && u.password === password
-      );
+    // Validar credenciais locais
+    const user = VALID_USERS.find(
+      (u) => u.username === username && u.password === password
+    );
 
-      if (!user) {
-        toast.error("Usuário ou senha inválidos");
-        setLoading(false);
-        return;
-      }
-
-      // Salvar sessão no localStorage
-      localStorage.setItem(
-        "auth_session",
-        JSON.stringify({
-          username: username,
-          authenticated: true,
-          timestamp: new Date().toISOString(),
-        })
-      );
-
-      toast.success(`Bem-vindo, ${username}!`);
-      
-      // Aguardar um pouco para mostrar a mensagem antes de navegar
-      setTimeout(() => {
-        navigate("/");
-      }, 500);
-    } catch (err) {
-      toast.error("Erro ao fazer login");
-      console.error(err);
-      setLoading(false);
+    if (!user) {
+      toast.error("Usuário ou senha inválidos");
+      return;
     }
+
+    // Salvar sessão no localStorage
+    localStorage.setItem(
+      "auth_session",
+      JSON.stringify({
+        username: username,
+        authenticated: true,
+        timestamp: new Date().toISOString(),
+      })
+    );
+
+    toast.success(`Bem-vindo, ${username}!`);
+    
+    // Navegar imediatamente
+    navigate("/");
   };
 
   return (
@@ -78,7 +67,6 @@ const Login = () => {
                 placeholder="analista01"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                disabled={loading}
                 className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
               />
             </div>
@@ -90,17 +78,16 @@ const Login = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
                 className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
               />
             </div>
 
             <Button
               type="submit"
-              disabled={loading || !username || !password}
+              disabled={!username || !password}
               className="w-full bg-orange-500 hover:bg-orange-600 text-white"
             >
-              {loading ? "Autenticando..." : "Entrar"}
+              Entrar
             </Button>
           </form>
 
