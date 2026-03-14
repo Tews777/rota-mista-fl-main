@@ -29,6 +29,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     };
 
     checkAuth();
+    
+    // Listen for storage changes (to detect login from other tab)
+    window.addEventListener("storage", checkAuth);
+    return () => window.removeEventListener("storage", checkAuth);
   }, []);
 
   if (loading) {

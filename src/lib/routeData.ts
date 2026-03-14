@@ -217,3 +217,25 @@ export interface SwapLabel {
   GaiolaNova: string;
   Cluster: string;
 }
+
+// Serializar RouteIndex para localStorage (converter Maps em objetos)
+export function serializeRouteIndex(index: RouteIndex): string {
+  const serialized = {
+    records: index.records,
+    indexBR: Object.fromEntries(index.indexBR),
+    indexCluster: Object.fromEntries(index.indexCluster),
+    indexBairro: Object.fromEntries(index.indexBairro),
+  };
+  return JSON.stringify(serialized);
+}
+
+// Desserializar RouteIndex do localStorage (converter objetos em Maps)
+export function deserializeRouteIndex(json: string): RouteIndex {
+  const parsed = JSON.parse(json);
+  return {
+    records: parsed.records,
+    indexBR: new Map(Object.entries(parsed.indexBR)),
+    indexCluster: new Map(Object.entries(parsed.indexCluster)),
+    indexBairro: new Map(Object.entries(parsed.indexBairro)),
+  };
+}

@@ -11,6 +11,8 @@ import {
   parseFile,
   findSuggestions,
   exportCSV,
+  serializeRouteIndex,
+  deserializeRouteIndex,
   type RouteIndex,
   type RouteRecord,
   type FilterMode,
@@ -71,7 +73,7 @@ const Index = () => {
       const savedIndex = localStorage.getItem("routeIndex");
       if (savedIndex) {
         try {
-          setIndex(JSON.parse(savedIndex));
+          setIndex(deserializeRouteIndex(savedIndex));
         } catch (e) {
           console.error("Failed to parse saved index:", e);
           localStorage.removeItem("routeIndex");
@@ -120,8 +122,8 @@ const Index = () => {
     try {
       const idx = await parseFile(file);
       setIndex(idx);
-      // Save to localStorage so it persists on page reload
-      localStorage.setItem("routeIndex", JSON.stringify(idx));
+      // Save to localStorage using proper serialization
+      localStorage.setItem("routeIndex", serializeRouteIndex(idx));
       setResults([]);
       setSelectedSwaps(new Map());
       toast.success(`${idx.records.length.toLocaleString()} registros carregados com sucesso!`);
