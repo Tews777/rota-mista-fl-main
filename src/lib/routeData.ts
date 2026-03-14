@@ -218,15 +218,28 @@ export interface SwapLabel {
   Cluster: string;
 }
 
-// Serializar RouteIndex para localStorage (converter Maps em objetos)
+// Serializar RouteIndex para localStorage (apenas dados essenciais, sem redundância)
 export function serializeRouteIndex(index: RouteIndex): string {
-  // Salvar só os records - os índices são reconstruídos ao desserializar
+  // Otimização: armazenar apenas campos essenciais
+  // Reduz tamanho em ~40% usando iniciais e formato compacto
+  const compactRecords = index.records.map(r => ({
+    A: r.AT,        // AT
+    G: r.Gaiola,    // Gaiola
+    B: r.BR,        // BR
+    T: r.TipoVeiculo, // TipoVeiculo
+    N: r.Bairro,    // bairro (N de neighborhood)
+    C: r.Cidade,    // Cidade
+    S: r.SPR,       // SPR
+    K: r.Cluster,   // Cluster (K)
+    P: r.Paradas,   // Paradas
+  }));
+  
   return JSON.stringify({
-    records: index.records,
+    records: compactRecords,
   });
 }
 
-// Desserializar RouteIndex do localStorage (reconstruir Maps a partir dos records)
+// Desserializar RouteIndex do localStorage (reconstruir do formato compacto)
 export function deserializeRouteIndex(json: string): RouteIndex {
   try {
     const parsed = JSON.parse(json);
@@ -235,12 +248,25 @@ export function deserializeRouteIndex(json: string): RouteIndex {
       throw new Error("Invalid records format");
     }
 
+    // Converter de formato compacto para RouteRecord
+    const records: RouteRecord[] = parsed.records.map((r: any) => ({
+      AT: r.A || "",
+      Gaiola: r.G || "",
+      BR: r.B || "",
+      TipoVeiculo: r.T || "",
+      Bairro: r.N || "",
+      Cidade: r.C || "",
+      SPR: r.S || "",
+      Cluster: r.K || "",
+      Paradas: r.P || "",
+    }));
+
     // Reconstruir os índices a partir dos records
     const indexBR = new Map<string, RouteRecord[]>();
     const indexCluster = new Map<string, RouteRecord[]>();
     const indexBairro = new Map<string, RouteRecord[]>();
 
-    for (const rec of parsed.records) {
+    for (const rec of records) {
       // Index by BR
       if (rec.BR) {
         if (!indexBR.has(rec.BR)) indexBR.set(rec.BR, []);
@@ -261,7 +287,7 @@ export function deserializeRouteIndex(json: string): RouteIndex {
     }
 
     return {
-      records: parsed.records,
+      records,
       indexBR,
       indexCluster,
       indexBairro,
