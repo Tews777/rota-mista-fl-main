@@ -85,6 +85,26 @@ const Index = () => {
     setBrInput("");
   }, []);
 
+  const handleClearAllData = useCallback(async () => {
+    // Limpa arquivo em cache
+    localStorage.removeItem("routeIndex");
+    setIndex(null);
+    setResults([]);
+    setSelectedSwaps(new Map());
+    setBrInput("");
+    
+    // Limpa histórico do Supabase
+    const { error } = await supabase.from("swap_history").delete().gte("id", "00000000-0000-0000-0000-000000000000");
+    if (error) {
+      toast.error("Erro ao limpar histórico do banco.");
+      console.error(error);
+      return;
+    }
+    
+    setSwapHistory([]);
+    toast.success("Histórico e arquivo limpos com sucesso!");
+  }, []);
+
   const handleFile = useCallback(async (file: File) => {
     setLoading(true);
     try {
@@ -231,7 +251,7 @@ const Index = () => {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <FileUpload onFile={handleFile} loading={loading} hasData={!!index} recordCount={index?.records.length ?? 0} onClearCache={handleClearCache} />
+            <FileUpload onFile={handleFile} loading={loading} hasData={!!index} recordCount={index?.records.length ?? 0} onClearCache={handleClearCache} onClearAllData={handleClearAllData} />
           </div>
         </div>
       </header>

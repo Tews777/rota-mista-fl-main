@@ -7,9 +7,10 @@ interface FileUploadProps {
   hasData: boolean;
   recordCount: number;
   onClearCache?: () => void;
+  onClearAllData?: () => Promise<void>;
 }
 
-export function FileUpload({ onFile, loading, hasData, recordCount, onClearCache }: FileUploadProps) {
+export function FileUpload({ onFile, loading, hasData, recordCount, onClearCache, onClearAllData }: FileUploadProps) {
   const ref = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showMenu, setShowMenu] = useState(false);
@@ -36,9 +37,8 @@ export function FileUpload({ onFile, loading, hasData, recordCount, onClearCache
   };
 
   const handleClearAll = () => {
-    // Limpa arquivo e histórico local (não afeta Supabase)
-    localStorage.removeItem("routeIndex");
-    onClearCache?.();
+    // Limpa arquivo e histórico (Supabase)
+    onClearAllData?.();
     setShowMenu(false);
   };
 
