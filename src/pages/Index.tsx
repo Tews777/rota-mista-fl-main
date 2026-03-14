@@ -361,7 +361,6 @@ const Index = () => {
               </div>
             )}
             <ThemeToggle />
-            <FileUpload onFile={handleFile} loading={loading} hasData={!!index} recordCount={index?.records.length ?? 0} onClearCache={handleClearCache} onClearAllData={handleClearAllData} />
             <Button
               variant="ghost"
               size="sm"
@@ -375,56 +374,54 @@ const Index = () => {
       </header>
 
       {/* Tabs */}
-      {index && (
-        <div className="container pt-4">
-          <div className="flex gap-1 rounded-lg border bg-muted p-1 w-fit">
-            <button
-              onClick={() => setActiveTab("busca")}
-              className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "busca"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Search className="h-4 w-4" />
-              Busca
-            </button>
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "dashboard"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab("historico")}
-              className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "historico"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <History className="h-4 w-4" />
-              Histórico
-              {swapHistory.length > 0 && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                  {swapHistory.length}
-                </span>
-              )}
-            </button>
-          </div>
+      <div className="container pt-4">
+        <div className="flex gap-1 rounded-lg border bg-muted p-1 w-fit">
+          <button
+            onClick={() => setActiveTab("busca")}
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "busca"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Search className="h-4 w-4" />
+            Busca
+          </button>
+          <button
+            onClick={() => setActiveTab("dashboard")}
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "dashboard"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab("historico")}
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "historico"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <History className="h-4 w-4" />
+            Histórico
+            {swapHistory.length > 0 && (
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {swapHistory.length}
+              </span>
+            )}
+          </button>
         </div>
-      )}
+      </div>
 
       <main className="container py-6">
         {/* Tab: Busca */}
         {activeTab === "busca" && (
           <>
-            {/* File Upload - Always visible */}
+            {/* File Upload - Show when no index loaded */}
             {!index && (
               <div className="mb-6 animate-fade-in">
                 <FileUpload 
@@ -438,7 +435,7 @@ const Index = () => {
               </div>
             )}
 
-            {/* Ciclo selector + Search bar */}
+            {/* Ciclo selector + Search bar - Show only when index loaded */}
             {index && (
               <div className="mb-6 animate-fade-in rounded-xl border bg-card p-4 shadow-sm space-y-3">
                 <div className="flex items-center gap-3">
