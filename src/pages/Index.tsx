@@ -143,7 +143,7 @@ const Index = () => {
 
   const handleConfirmSwaps = useCallback(async () => {
     const now = new Date();
-    const dateStr = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+    const dateStr = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
 
     const newEntries: SwapHistoryEntry[] = Array.from(selectedSwaps.values()).map(({ original, swap }) => ({
       DATA: dateStr,

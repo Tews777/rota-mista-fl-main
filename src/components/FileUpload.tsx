@@ -1,5 +1,5 @@
-import { Upload, RotateCcw } from "lucide-react";
-import { useRef } from "react";
+import { Upload, RotateCcw, ChevronDown } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
 
 interface FileUploadProps {
   onFile: (file: File) => void;
@@ -11,10 +11,35 @@ interface FileUploadProps {
 
 export function FileUpload({ onFile, loading, hasData, recordCount, onClearCache }: FileUploadProps) {
   const ref = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [showMenu, setShowMenu] = useState(false);
 
-  const handleClearCache = () => {
+  // Fechar menu ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMenu]);
+
+  const handleClearFile = () => {
+    // Limpa apenas o arquivo em cache, mantém histórico
     localStorage.removeItem("routeIndex");
     onClearCache?.();
+    setShowMenu(false);
+  };
+
+  const handleClearAll = () => {
+    // Limpa arquivo e histórico local (não afeta Supabase)
+    localStorage.removeItem("routeIndex");
+    onClearCache?.();
+    setShowMenu(false);
   };
 
   return (
@@ -42,15 +67,36 @@ export function FileUpload({ onFile, loading, hasData, recordCount, onClearCache
           <span className="text-xs text-muted-foreground">
             {recordCount.toLocaleString()} registros carregados
           </span>
-          <button
-            onClick={handleClearCache}
-            disabled={loading}
-            className="flex items-center gap-1 rounded-lg border px-3 py-2.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent disabled:opacity-50"
-            title="Carregar novo arquivo (limpar cache)"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Novo
-          </button>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              disabled={loading}
+              className="flex items-center gap-1 rounded-lg border px-3 py-2.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent disabled:opacity-50"
+              title="Menu de opções"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Opções
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border bg-card shadow-lg z-10">
+                <button
+                  onClick={handleClearFile}
+                  className="w-full text-left px-4 py-2 text-xs hover:bg-accent first:rounded-t-lg transition-colors"
+                >
+                  <div className="font-semibold">Carregar novo arquivo</div>
+                  <div className="text-muted-foreground text-[10px]">Mantém o histórico</div>
+                </button>
+                <button
+                  onClick={handleClearAll}
+                  className="w-full text-left px-4 py-2 text-xs hover:bg-accent last:rounded-b-lg transition-colors"
+                >
+                  <div className="font-semibold">Limpar tudo</div>
+                  <div className="text-muted-foreground text-[10px]">Reseta arquivo e dados</div>
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
