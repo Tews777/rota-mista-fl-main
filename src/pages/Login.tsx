@@ -7,8 +7,14 @@ import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 
+// Usuários hardcoded para autenticação local
+const VALID_USERS = [
+  { username: "analista01", password: "analista01" },
+  { username: "analista02", password: "analista02" },
+];
+
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -18,17 +24,43 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Validar credenciais locais
+      const user = VALID_USERS.find(
+        (u) => u.username === username && u.password === password
+      );
 
-      if (error) {
-        toast.error(`Erro ao fazer login: ${error.message}`);
+      if (!user) {
+        toast.error("Usuário ou senha inválidos");
+        setLoading(false);
         return;
       }
 
-      toast.success("Login realizado com sucesso!");
+      // Criar sessão virtual
+      const { error } = await supabase.auth.signInWithPassword({
+        email: `${username}@floripa.local`,
+        password: password,
+      });
+
+      if (error) {
+        // Se não existir no Supabase, criar usuário automaticamente
+        await supabase.auth.signUp({
+          email: `${username}@floripa.local`,
+          password: password,
+          options: {
+            data: {
+              username: username,
+            },
+          },
+        });
+
+        // Fazer login depois
+        await supabase.auth.signInWithPassword({
+          email: `${username}@floripa.local`,
+          password: password,
+        });
+      }
+
+      toast.success(`Bem-vindo, ${username}!`);
       navigate("/");
     } catch (err) {
       toast.error("Erro ao fazer login");
@@ -53,12 +85,12 @@ const Login = () => {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Email</label>
+              <label className="text-sm font-medium text-slate-300">Usuário</label>
               <Input
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="analista01"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 disabled={loading}
                 className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500"
               />
@@ -78,7 +110,7 @@ const Login = () => {
 
             <Button
               type="submit"
-              disabled={loading || !email || !password}
+              disabled={loading || !username || !password}
               className="w-full bg-orange-500 hover:bg-orange-600 text-white"
             >
               {loading ? "Autenticando..." : "Entrar"}
@@ -89,12 +121,12 @@ const Login = () => {
             <p className="text-xs text-slate-400 mb-3">Contas disponíveis:</p>
             <div className="space-y-2 text-xs">
               <div className="bg-slate-700 p-3 rounded">
-                <p className="font-mono text-slate-200">operador1@floripa.local</p>
-                <p className="text-slate-400">senha: operador123</p>
+                <p className="font-mono text-slate-200">analista01</p>
+                <p className="text-slate-400">senha: analista01</p>
               </div>
               <div className="bg-slate-700 p-3 rounded">
-                <p className="font-mono text-slate-200">operador2@floripa.local</p>
-                <p className="text-slate-400">senha: operador123</p>
+                <p className="font-mono text-slate-200">analista02</p>
+                <p className="text-slate-400">senha: analista02</p>
               </div>
             </div>
           </div>

@@ -14,14 +14,14 @@ const supabase = createClient(supabaseUrl, supabaseAdminKey);
 async function createUsers() {
   const users = [
     {
-      email: "operador1@floripa.local",
-      password: "operador123",
-      displayName: "Operador 1",
+      email: "analista01@floripa.local",
+      password: "analista01",
+      displayName: "Analista 1",
     },
     {
-      email: "operador2@floripa.local",
-      password: "operador123",
-      displayName: "Operador 2",
+      email: "analista02@floripa.local",
+      password: "analista02",
+      displayName: "Analista 2",
     },
   ];
 
