@@ -231,11 +231,51 @@ export function serializeRouteIndex(index: RouteIndex): string {
 
 // Desserializar RouteIndex do localStorage (converter objetos em Maps)
 export function deserializeRouteIndex(json: string): RouteIndex {
-  const parsed = JSON.parse(json);
-  return {
-    records: parsed.records,
-    indexBR: new Map(Object.entries(parsed.indexBR)),
-    indexCluster: new Map(Object.entries(parsed.indexCluster)),
-    indexBairro: new Map(Object.entries(parsed.indexBairro)),
-  };
+  try {
+    const parsed = JSON.parse(json);
+    
+    // Validar se tem os campos necessários
+    if (!parsed.records || !Array.isArray(parsed.records)) {
+      throw new Error("Invalid records format");
+    }
+    
+    // Converter objetos em Maps, garantindo que os valores são arrays
+    const indexBR = new Map<string, RouteRecord[]>();
+    const indexCluster = new Map<string, RouteRecord[]>();
+    const indexBairro = new Map<string, RouteRecord[]>();
+    
+    if (parsed.indexBR && typeof parsed.indexBR === 'object') {
+      for (const [key, value] of Object.entries(parsed.indexBR)) {
+        if (Array.isArray(value)) {
+          indexBR.set(key, value as RouteRecord[]);
+        }
+      }
+    }
+    
+    if (parsed.indexCluster && typeof parsed.indexCluster === 'object') {
+      for (const [key, value] of Object.entries(parsed.indexCluster)) {
+        if (Array.isArray(value)) {
+          indexCluster.set(key, value as RouteRecord[]);
+        }
+      }
+    }
+    
+    if (parsed.indexBairro && typeof parsed.indexBairro === 'object') {
+      for (const [key, value] of Object.entries(parsed.indexBairro)) {
+        if (Array.isArray(value)) {
+          indexBairro.set(key, value as RouteRecord[]);
+        }
+      }
+    }
+    
+    return {
+      records: parsed.records,
+      indexBR,
+      indexCluster,
+      indexBairro,
+    };
+  } catch (err) {
+    console.error("Error deserializing RouteIndex:", err);
+    throw err;
+  }
 }

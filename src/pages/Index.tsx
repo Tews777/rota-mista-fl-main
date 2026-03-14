@@ -73,7 +73,14 @@ const Index = () => {
       const savedIndex = localStorage.getItem("routeIndex");
       if (savedIndex) {
         try {
-          setIndex(deserializeRouteIndex(savedIndex));
+          const deserialized = deserializeRouteIndex(savedIndex);
+          // Validar que tem indexBR como Map
+          if (deserialized.indexBR instanceof Map && deserialized.indexBR.size > 0) {
+            setIndex(deserialized);
+          } else {
+            // Se está corrompido, remove
+            localStorage.removeItem("routeIndex");
+          }
         } catch (e) {
           console.error("Failed to parse saved index:", e);
           localStorage.removeItem("routeIndex");
