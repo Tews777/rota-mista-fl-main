@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -12,25 +11,24 @@ import NotFound from "./pages/NotFound.tsx";
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data?.session);
+    const checkAuth = () => {
+      const session = localStorage.getItem("auth_session");
+      if (session) {
+        try {
+          const data = JSON.parse(session);
+          setIsAuthenticated(data.authenticated === true);
+        } catch {
+          setIsAuthenticated(false);
+        }
+      }
       setLoading(false);
     };
 
     checkAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription?.unsubscribe();
   }, []);
 
   if (loading) {
@@ -44,7 +42,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return session ? children : <Login />;
+  return isAuthenticated ? children : <Login />;
 };
 
 const App = () => (

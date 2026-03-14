@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -35,37 +34,25 @@ const Login = () => {
         return;
       }
 
-      // Criar sessão virtual
-      const { error } = await supabase.auth.signInWithPassword({
-        email: `${username}@floripa.local`,
-        password: password,
-      });
-
-      if (error) {
-        // Se não existir no Supabase, criar usuário automaticamente
-        await supabase.auth.signUp({
-          email: `${username}@floripa.local`,
-          password: password,
-          options: {
-            data: {
-              username: username,
-            },
-          },
-        });
-
-        // Fazer login depois
-        await supabase.auth.signInWithPassword({
-          email: `${username}@floripa.local`,
-          password: password,
-        });
-      }
+      // Salvar sessão no localStorage
+      localStorage.setItem(
+        "auth_session",
+        JSON.stringify({
+          username: username,
+          authenticated: true,
+          timestamp: new Date().toISOString(),
+        })
+      );
 
       toast.success(`Bem-vindo, ${username}!`);
-      navigate("/");
+      
+      // Aguardar um pouco para mostrar a mensagem antes de navegar
+      setTimeout(() => {
+        navigate("/");
+      }, 500);
     } catch (err) {
       toast.error("Erro ao fazer login");
       console.error(err);
-    } finally {
       setLoading(false);
     }
   };

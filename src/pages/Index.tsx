@@ -109,12 +109,10 @@ const Index = () => {
   }, []);
 
   const handleLogout = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Erro ao fazer logout");
-      return;
-    }
+    // Limpar sessão do localStorage
+    localStorage.removeItem("auth_session");
     navigate("/login");
+    toast.success("Logout realizado com sucesso!");
   }, [navigate]);
 
   const handleFile = useCallback(async (file: File) => {
