@@ -238,25 +238,31 @@ const Index = () => {
     }));
 
     // Save to database
-    const dbRows = newEntries.map((e) => ({
-      data: e.DATA,
-      ciclo: e.Ciclo,
-      rota_de: e.RotaDE,
-      modal_de: e.ModalDE,
-      rota_para: e.RotaPARA,
-      modal_para: e.ModalPARA,
-      qtd_pacotes: e.QtdPacotes,
-      br: e.BR,
-      at_origem: e.ATOrigem,
-      at_destino: e.ATDestino,
-      bairro: e.Bairro,
-      usuario: e.usuario,
-    }));
+    const dbRows = newEntries.map((e) => {
+      const row: any = {
+        data: e.DATA,
+        ciclo: e.Ciclo,
+        rota_de: e.RotaDE,
+        modal_de: e.ModalDE,
+        rota_para: e.RotaPARA,
+        modal_para: e.ModalPARA,
+        qtd_pacotes: e.QtdPacotes,
+        br: e.BR,
+        at_origem: e.ATOrigem,
+        at_destino: e.ATDestino,
+        bairro: e.Bairro,
+      };
+      // Only add usuario if it exists (for backward compatibility)
+      if (e.usuario) {
+        row.usuario = e.usuario;
+      }
+      return row;
+    });
 
     const { error } = await supabase.from("swap_history").insert(dbRows);
     if (error) {
       toast.error("Erro ao salvar no banco de dados.");
-      console.error(error);
+      console.error("Erro detalhado:", error);
       return;
     }
 
