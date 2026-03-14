@@ -62,11 +62,11 @@ const Index = () => {
       // Load swap history from database
       const { data, error } = await supabase
         .from("swap_history")
-        .select("*")
+        .select("data,ciclo,rota_de,modal_de,rota_para,modal_para,qtd_pacotes,br,at_origem,at_destino,bairro")
         .order("created_at", { ascending: true });
       if (!error && data) {
         setSwapHistory(
-          data.map((row) => ({
+          data.map((row: any) => ({
             DATA: row.data,
             Ciclo: row.ciclo,
             RotaDE: row.rota_de,
@@ -78,8 +78,11 @@ const Index = () => {
             ATOrigem: row.at_origem,
             ATDestino: row.at_destino,
             Bairro: row.bairro,
+            usuario: row.usuario || undefined,
           }))
         );
+      } else if (error) {
+        console.error("Erro ao carregar histórico:", error);
       }
 
       // Load uploaded file from localStorage
@@ -134,10 +137,16 @@ const Index = () => {
     setBrInput("");
     
     // Limpa histórico do Supabase
-    const { error } = await supabase.from("swap_history").delete().gte("id", "00000000-0000-0000-0000-000000000000");
-    if (error) {
+    try {
+      const { error } = await supabase.from("swap_history").delete().gte("id", "00000000-0000-0000-0000-000000000000");
+      if (error) {
+        toast.error("Erro ao limpar histórico do banco.");
+        console.error("Clear all error:", error);
+        return;
+      }
+    } catch (err) {
       toast.error("Erro ao limpar histórico do banco.");
-      console.error(error);
+      console.error("Clear all exception:", err);
       return;
     }
     
@@ -162,7 +171,18 @@ const Index = () => {
       // Save to localStorage using proper serialization (per-user)
       const serialized = serializeRouteIndex(idx);
       const storageKey = getStorageKey("routeIndex");
-      localStorage.setItem(storageKey, serialized);
+      
+      // Check localStorage quota before saving
+      try {
+        localStorage.setItem(storageKey, serialized);
+      } catch (storageError: any) {
+        if (storageError.name === 'QuotaExceededError') {
+          toast.error("Arquivo muito grande para salvar em cache. Usando modo temporário.");
+          console.warn("localStorage quota exceeded, using memory cache only");
+        } else {
+          throw storageError;
+        }
+      }
       
       setResults([]);
       setSelectedSwaps(new Map());
@@ -299,26 +319,31 @@ const Index = () => {
   }));
 
   const handleUndoSwap = useCallback(async (entry: SwapHistoryEntry) => {
-    const { error } = await supabase
-      .from("swap_history")
-      .delete()
-      .match({
-        br: entry.BR,
-        at_origem: entry.ATOrigem,
-        at_destino: entry.ATDestino,
-        data: entry.DATA,
-      });
+    try {
+      const { error } = await supabase
+        .from("swap_history")
+        .delete()
+        .match({
+          br: entry.BR,
+          at_origem: entry.ATOrigem,
+          at_destino: entry.ATDestino,
+          data: entry.DATA,
+        });
 
-    if (error) {
+      if (error) {
+        toast.error("Erro ao desfazer troca.");
+        console.error("Undo error:", error);
+        return;
+      }
+
+      setSwapHistory((prev) => 
+        prev.filter((e) => !(e.BR === entry.BR && e.ATOrigem === entry.ATOrigem && e.ATDestino === entry.ATDestino && e.DATA === entry.DATA))
+      );
+      toast.success(`Troca de BR ${entry.BR} desfeita com sucesso!`);
+    } catch (err) {
       toast.error("Erro ao desfazer troca.");
-      console.error(error);
-      return;
+      console.error("Undo exception:", err);
     }
-
-    setSwapHistory((prev) => 
-      prev.filter((e) => !(e.BR === entry.BR && e.ATOrigem === entry.ATOrigem && e.ATDestino === entry.ATDestino && e.DATA === entry.DATA))
-    );
-    toast.success(`Troca de BR ${entry.BR} desfeita com sucesso!`);
   }, []);
 
   const allSuggestions = results.flatMap((r) => r.suggestions);
