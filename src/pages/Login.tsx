@@ -31,14 +31,20 @@ const Login = () => {
     }
 
     // Salvar sessão no localStorage
-    localStorage.setItem(
-      "auth_session",
-      JSON.stringify({
-        username: username,
-        authenticated: true,
-        timestamp: new Date().toISOString(),
-      })
-    );
+    const sessionData = {
+      username: username,
+      authenticated: true,
+      timestamp: new Date().toISOString(),
+    };
+    
+    localStorage.setItem("auth_session", JSON.stringify(sessionData));
+
+    // Disparar evento de storage para atualizar outras abas/componentes
+    window.dispatchEvent(new StorageEvent("storage", {
+      key: "auth_session",
+      newValue: JSON.stringify(sessionData),
+      storageArea: localStorage,
+    }));
 
     toast.success(`Bem-vindo, ${username}!`);
     

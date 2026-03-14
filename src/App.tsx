@@ -24,6 +24,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         } catch {
           setIsAuthenticated(false);
         }
+      } else {
+        setIsAuthenticated(false);
       }
       setLoading(false);
     };
@@ -31,8 +33,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     checkAuth();
     
     // Listen for storage changes (to detect login from other tab)
-    window.addEventListener("storage", checkAuth);
-    return () => window.removeEventListener("storage", checkAuth);
+    const handleStorageChange = () => {
+      checkAuth();
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   if (loading) {
@@ -46,7 +52,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return isAuthenticated ? children : <Login />;
+  // If not authenticated, navigate to login
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  return children;
 };
 
 const App = () => (

@@ -422,40 +422,56 @@ const Index = () => {
 
       <main className="container py-6">
         {/* Tab: Busca */}
-        {index && activeTab === "busca" && (
+        {activeTab === "busca" && (
           <>
-            {/* Ciclo selector + Search bar */}
-            <div className="mb-6 animate-fade-in rounded-xl border bg-card p-4 shadow-sm space-y-3">
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-muted-foreground">Ciclo:</label>
-                <div className="flex gap-1 rounded-lg border bg-muted p-1">
-                  <button
-                    onClick={() => setCiclo("AM")}
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
-                      ciclo === "AM" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    AM
-                  </button>
-                  <button
-                    onClick={() => setCiclo("PM")}
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
-                      ciclo === "PM" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    PM
-                  </button>
-                </div>
+            {/* File Upload - Always visible */}
+            {!index && (
+              <div className="mb-6 animate-fade-in">
+                <FileUpload 
+                  onFile={handleFile}
+                  loading={loading}
+                  hasData={!!index}
+                  recordCount={index?.records.length || 0}
+                  onClearCache={handleClearCache}
+                  onClearAllData={handleClearAllData}
+                />
               </div>
-              <BRSearchBar
-                brInput={brInput}
-                onBRChange={setBrInput}
-                filter={filter}
-                onFilterChange={setFilter}
-                onSearch={handleSearch}
-                disabled={!index}
-              />
-            </div>
+            )}
+
+            {/* Ciclo selector + Search bar */}
+            {index && (
+              <div className="mb-6 animate-fade-in rounded-xl border bg-card p-4 shadow-sm space-y-3">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-muted-foreground">Ciclo:</label>
+                  <div className="flex gap-1 rounded-lg border bg-muted p-1">
+                    <button
+                      onClick={() => setCiclo("AM")}
+                      className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                        ciclo === "AM" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      AM
+                    </button>
+                    <button
+                      onClick={() => setCiclo("PM")}
+                      className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                        ciclo === "PM" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      PM
+                    </button>
+                  </div>
+                </div>
+                <BRSearchBar
+                  brInput={brInput}
+                  onBRChange={setBrInput}
+                  filter={filter}
+                  onFilterChange={setFilter}
+                  onSearch={handleSearch}
+                  disabled={!index}
+                />
+              </div>
+            )}
 
             {/* Action bar */}
             {results.length > 0 && (
@@ -523,28 +539,44 @@ const Index = () => {
         )}
 
         {/* Tab: Histórico */}
-        {index && activeTab === "historico" && (
-          <SwapHistoryTable
-            entries={swapHistory}
-            onClear={async () => {
-              const { error } = await supabase.from("swap_history").delete().gte("id", "00000000-0000-0000-0000-000000000000");
-              if (error) {
-                toast.error("Erro ao limpar histórico do banco.");
-                return;
-              }
-              setSwapHistory([]);
-              toast.info("Histórico de trocas limpo.");
-            }}
-          />
+        {activeTab === "historico" && (
+          <>
+            <SwapHistoryTable
+              entries={swapHistory}
+              onClear={async () => {
+                const { error } = await supabase.from("swap_history").delete().gte("id", "00000000-0000-0000-0000-000000000000");
+                if (error) {
+                  toast.error("Erro ao limpar histórico do banco.");
+                  return;
+                }
+                setSwapHistory([]);
+                toast.info("Histórico de trocas limpo.");
+              }}
+            />
+            {swapHistory.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <History className="mb-4 h-12 w-12 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">Nenhuma troca registrada ainda.</p>
+              </div>
+            )}
+          </>
         )}
 
         {/* Tab: Dashboard */}
-        {index && activeTab === "dashboard" && (
-          <DashboardPanel 
-            entries={swapHistory} 
-            currentUsername={currentUsername}
-            onUndoSwap={handleUndoSwap}
-          />
+        {activeTab === "dashboard" && (
+          <>
+            <DashboardPanel 
+              entries={swapHistory} 
+              currentUsername={currentUsername}
+              onUndoSwap={handleUndoSwap}
+            />
+            {swapHistory.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <BarChart3 className="mb-4 h-12 w-12 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">Nenhuma troca registrada para análise.</p>
+              </div>
+            )}
+          </>
         )}
 
         {/* Empty state */}
