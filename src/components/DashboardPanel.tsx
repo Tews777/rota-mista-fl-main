@@ -11,16 +11,11 @@ interface DashboardPanelProps {
 
 export function DashboardPanel({ entries, currentUsername, onUndoSwap }: DashboardPanelProps) {
   const [selectedDateRange, setSelectedDateRange] = useState<"today" | "week" | "month" | "all">("today");
-  const [filterByUser, setFilterByUser] = useState<"all" | string>("all");
   const [undoLoading, setUndoLoading] = useState<number | null>(null);
 
   // Extract unique users
   const users = useMemo(() => {
-    const uniqueUsers = new Set<string>();
-    entries.forEach((e) => {
-      if (e.usuario) uniqueUsers.add(e.usuario);
-    });
-    return Array.from(uniqueUsers).sort();
+    return [];
   }, [entries]);
 
   // Filter entries by date range
@@ -54,9 +49,8 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
 
   // Filter by user
   const filteredEntries = useMemo(() => {
-    if (filterByUser === "all") return filteredByDate;
-    return filteredByDate.filter((e) => e.usuario === filterByUser);
-  }, [filteredByDate, filterByUser]);
+    return filteredByDate;
+  }, [filteredByDate]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -93,13 +87,7 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
 
   // Swaps by user
   const swapsByUser = useMemo(() => {
-    const userCounts: Record<string, number> = {};
-    filteredEntries.forEach((e) => {
-      if (e.usuario) {
-        userCounts[e.usuario] = (userCounts[e.usuario] || 0) + 1;
-      }
-    });
-    return Object.entries(userCounts).sort(([, a], [, b]) => b - a);
+    return [];
   }, [filteredEntries]);
 
   // Swaps by cycle
@@ -153,22 +141,6 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
               <option value="week">Últimos 7 dias</option>
               <option value="month">Últimos 30 dias</option>
               <option value="all">Todos os períodos</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <select
-              value={filterByUser}
-              onChange={(e) => setFilterByUser(e.target.value)}
-              className="rounded-lg border bg-card px-3 py-2 text-sm text-card-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="all">Todos os usuários</option>
-              {users.map((user) => (
-                <option key={user} value={user}>
-                  {user}
-                </option>
-              ))}
             </select>
           </div>
         </div>
@@ -252,29 +224,6 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
                   <div key={neighborhood} className="flex items-center justify-between">
                     <span className="text-sm">{neighborhood}</span>
                     <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500">
-                      {count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Swaps by User */}
-        <div className="animate-fade-in rounded-xl border bg-card shadow-sm">
-          <div className="border-b px-4 py-3">
-            <h3 className="font-display text-sm font-bold">Trocas por Usuário</h3>
-          </div>
-          <div className="p-4">
-            {swapsByUser.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nenhum dado disponível</p>
-            ) : (
-              <div className="space-y-2">
-                {swapsByUser.map(([user, count]) => (
-                  <div key={user} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{user}</span>
-                    <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-500">
                       {count}
                     </span>
                   </div>
