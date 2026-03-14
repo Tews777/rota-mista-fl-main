@@ -120,6 +120,21 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
     }
   };
 
+  // Identify duplicate swaps (same BR swapped multiple times)
+  const duplicateCheckMap = useMemo(() => {
+    const brCounts: Record<string, number[]> = {};
+    filteredEntries.forEach((e, idx) => {
+      if (!brCounts[e.BR]) brCounts[e.BR] = [];
+      brCounts[e.BR].push(idx);
+    });
+    return brCounts;
+  }, [filteredEntries]);
+
+  const isDuplicate = (index: number) => {
+    const entry = filteredEntries[index];
+    return duplicateCheckMap[entry.BR] && duplicateCheckMap[entry.BR].length > 1;
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -308,13 +323,18 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
                   <th className="p-2 font-medium">ROTA</th>
                   <th className="p-2 font-medium">AT ORIGEM</th>
                   <th className="p-2 font-medium">AT DESTINO</th>
-                  <th className="p-2 font-medium">USUÁRIO</th>
+                  <th className="p-2 font-medium">STATUS</th>
                   <th className="p-2 font-medium">AÇÃO</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredEntries.slice(0, 10).map((e, i) => (
-                  <tr key={i} className="border-b last:border-0 hover:bg-accent/50 transition-colors">
+                  <tr 
+                    key={i} 
+                    className={`border-b last:border-0 hover:bg-accent/50 transition-colors ${
+                      isDuplicate(i) ? "bg-yellow-500/10" : ""
+                    }`}
+                  >
                     <td className="p-2 text-xs">{e.DATA}</td>
                     <td className="p-2 font-mono font-semibold">{e.BR}</td>
                     <td className="p-2">
@@ -324,7 +344,20 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
                     </td>
                     <td className="p-2 font-mono text-xs">{e.ATOrigem}</td>
                     <td className="p-2 font-mono text-xs">{e.ATDestino}</td>
-                    <td className="p-2 text-xs">{e.usuario || "—"}</td>
+                    <td className="p-2 text-xs">
+                      {isDuplicate(i) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 px-2 py-1 text-xs font-semibold text-yellow-700 dark:text-yellow-400">
+                          <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                          Duplicada
+                        </span>
+                      )}
+                      {!isDuplicate(i) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/20 px-2 py-1 text-xs font-semibold text-green-700 dark:text-green-400">
+                          <span className="h-2 w-2 rounded-full bg-green-500" />
+                          OK
+                        </span>
+                      )}
+                    </td>
                     <td className="p-2">
                       <Button
                         size="sm"
