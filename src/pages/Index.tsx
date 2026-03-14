@@ -257,27 +257,20 @@ const Index = () => {
       usuario: currentUsername || "guest",
     }));
 
-    // Save to database
-    const dbRows = newEntries.map((e) => {
-      const row: any = {
-        data: e.DATA,
-        ciclo: e.Ciclo,
-        rota_de: e.RotaDE,
-        modal_de: e.ModalDE,
-        rota_para: e.RotaPARA,
-        modal_para: e.ModalPARA,
-        qtd_pacotes: e.QtdPacotes,
-        br: e.BR,
-        at_origem: e.ATOrigem,
-        at_destino: e.ATDestino,
-        bairro: e.Bairro,
-      };
-      // Only add usuario if it's a valid string
-      if (typeof e.usuario === "string" && e.usuario.trim()) {
-        row.usuario = e.usuario;
-      }
-      return row;
-    });
+    // Save to database (only the columns that exist in swap_history table)
+    const dbRows = newEntries.map((e) => ({
+      data: e.DATA,
+      ciclo: e.Ciclo,
+      rota_de: e.RotaDE,
+      modal_de: e.ModalDE,
+      rota_para: e.RotaPARA,
+      modal_para: e.ModalPARA,
+      qtd_pacotes: e.QtdPacotes,
+      br: e.BR,
+      at_origem: e.ATOrigem,
+      at_destino: e.ATDestino,
+      bairro: e.Bairro,
+    }));
 
     const { error } = await supabase.from("swap_history").insert(dbRows);
     if (error) {
