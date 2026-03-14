@@ -77,21 +77,39 @@ const Index = () => {
       }
 
       // Load uploaded file from localStorage
-      const savedIndex = localStorage.getItem(getStorageKey("routeIndex"));
+      const storageKey = getStorageKey("routeIndex");
+      const savedIndex = localStorage.getItem(storageKey);
+      console.log(`Tentando carregar arquivo do localStorage (chave: ${storageKey}):`, savedIndex ? `${savedIndex.length} bytes` : "vazio");
+      
       if (savedIndex) {
         try {
           const deserialized = deserializeRouteIndex(savedIndex);
+          console.log("Arquivo desserializado:", deserialized);
+          
           // Validar que tem indexBR como Map
-          if (deserialized.indexBR instanceof Map && deserialized.indexBR.size > 0) {
+          if (
+            deserialized &&
+            deserialized.indexBR &&
+            deserialized.indexBR instanceof Map &&
+            deserialized.indexBR.size > 0 &&
+            deserialized.records &&
+            Array.isArray(deserialized.records)
+          ) {
+            console.log("Index válido. Registros:", deserialized.records.length, "BRs indexados:", deserialized.indexBR.size);
             setIndex(deserialized);
           } else {
-            // Se está corrompido, remove
-            localStorage.removeItem(getStorageKey("routeIndex"));
+            console.warn("Index inválido. Removendo do localStorage.");
+            localStorage.removeItem(storageKey);
+            setIndex(null);
           }
         } catch (e) {
-          console.error("Failed to parse saved index:", e);
-          localStorage.removeItem(getStorageKey("routeIndex"));
+          console.error("Erro ao desserializar index:", e);
+          localStorage.removeItem(storageKey);
+          setIndex(null);
         }
+      } else {
+        console.log("Nenhum arquivo salvo no localStorage");
+        setIndex(null);
       }
     };
     loadData();
@@ -135,14 +153,23 @@ const Index = () => {
   const handleFile = useCallback(async (file: File) => {
     setLoading(true);
     try {
+      console.log(`Carregando arquivo: ${file.name}`);
       const idx = await parseFile(file);
+      console.log("Arquivo parseado:", { records: idx.records.length, brs: idx.indexBR.size });
+      
       setIndex(idx);
+      
       // Save to localStorage using proper serialization (per-user)
-      localStorage.setItem(getStorageKey("routeIndex"), serializeRouteIndex(idx));
+      const serialized = serializeRouteIndex(idx);
+      const storageKey = getStorageKey("routeIndex");
+      localStorage.setItem(storageKey, serialized);
+      console.log(`Arquivo salvo em localStorage (${storageKey}): ${serialized.length} bytes`);
+      
       setResults([]);
       setSelectedSwaps(new Map());
       toast.success(`${idx.records.length.toLocaleString()} registros carregados com sucesso!`);
-    } catch {
+    } catch (err) {
+      console.error("Erro ao processar arquivo:", err);
       toast.error("Erro ao processar arquivo. Verifique o formato.");
     } finally {
       setLoading(false);
@@ -150,7 +177,12 @@ const Index = () => {
   }, []);
 
   const handleSearch = useCallback(() => {
-    if (!index) return;
+    if (!index || !index.indexBR || !(index.indexBR instanceof Map)) {
+      toast.error("Nenhum arquivo carregado ou arquivo inválido. Carregue um arquivo primeiro.");
+      console.error("Invalid index:", index);
+      return;
+    }
+
     const brs = brInput
       .split(/[,\n]+/)
       .map((s) => s.trim())
