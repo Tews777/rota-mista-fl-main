@@ -43,6 +43,13 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabMode>("busca");
   const [ciclo, setCiclo] = useState<"AM" | "PM">("AM");
 
+  // Get current username for per-user storage
+  const getStorageKey = (suffix: string) => {
+    const session = localStorage.getItem("auth_session");
+    const username = session ? JSON.parse(session).username : "guest";
+    return `${username}_${suffix}`;
+  };
+
   // Load swap history from database and uploaded file from localStorage on mount
   useEffect(() => {
     const loadData = async () => {
@@ -70,7 +77,7 @@ const Index = () => {
       }
 
       // Load uploaded file from localStorage
-      const savedIndex = localStorage.getItem("routeIndex");
+      const savedIndex = localStorage.getItem(getStorageKey("routeIndex"));
       if (savedIndex) {
         try {
           const deserialized = deserializeRouteIndex(savedIndex);
@@ -79,11 +86,11 @@ const Index = () => {
             setIndex(deserialized);
           } else {
             // Se está corrompido, remove
-            localStorage.removeItem("routeIndex");
+            localStorage.removeItem(getStorageKey("routeIndex"));
           }
         } catch (e) {
           console.error("Failed to parse saved index:", e);
-          localStorage.removeItem("routeIndex");
+          localStorage.removeItem(getStorageKey("routeIndex"));
         }
       }
     };
@@ -91,6 +98,7 @@ const Index = () => {
   }, []);
 
   const handleClearCache = useCallback(() => {
+    localStorage.removeItem(getStorageKey("routeIndex"));
     setIndex(null);
     setResults([]);
     setSelectedSwaps(new Map());
@@ -98,8 +106,8 @@ const Index = () => {
   }, []);
 
   const handleClearAllData = useCallback(async () => {
-    // Limpa arquivo em cache
-    localStorage.removeItem("routeIndex");
+    // Limpa arquivo em cache (per-user)
+    localStorage.removeItem(getStorageKey("routeIndex"));
     setIndex(null);
     setResults([]);
     setSelectedSwaps(new Map());
@@ -129,8 +137,8 @@ const Index = () => {
     try {
       const idx = await parseFile(file);
       setIndex(idx);
-      // Save to localStorage using proper serialization
-      localStorage.setItem("routeIndex", serializeRouteIndex(idx));
+      // Save to localStorage using proper serialization (per-user)
+      localStorage.setItem(getStorageKey("routeIndex"), serializeRouteIndex(idx));
       setResults([]);
       setSelectedSwaps(new Map());
       toast.success(`${idx.records.length.toLocaleString()} registros carregados com sucesso!`);
