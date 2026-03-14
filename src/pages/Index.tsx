@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, Download, ArrowRightLeft, AlertTriangle, Search, History, LogOut } from "lucide-react";
+import { Package, Download, ArrowRightLeft, AlertTriangle, Search, History, LogOut, BarChart3 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { FileUpload } from "@/components/FileUpload";
 import { BRSearchBar } from "@/components/BRSearchBar";
 import { BRResultCard } from "@/components/BRResultCard";
 import { PrintLabels } from "@/components/PrintLabels";
 import { SwapHistoryTable, type SwapHistoryEntry } from "@/components/SwapHistoryTable";
+import { DashboardPanel } from "@/components/DashboardPanel";
 import {
   parseFile,
   findSuggestions,
@@ -28,7 +29,7 @@ interface BRResult {
   suggestions: RouteRecord[];
 }
 
-type TabMode = "busca" | "historico";
+type TabMode = "busca" | "historico" | "dashboard";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -42,17 +43,22 @@ const Index = () => {
   const [swapHistory, setSwapHistory] = useState<SwapHistoryEntry[]>([]);
   const [activeTab, setActiveTab] = useState<TabMode>("busca");
   const [ciclo, setCiclo] = useState<"AM" | "PM">("AM");
+  const [currentUsername, setCurrentUsername] = useState<string>("");
 
   // Get current username for per-user storage
-  const getStorageKey = (suffix: string) => {
-    const session = localStorage.getItem("auth_session");
-    const username = session ? JSON.parse(session).username : "guest";
-    return `${username}_${suffix}`;
+  const getStorageKey = (suffix: string, username?: string) => {
+    const user = username || currentUsername || "guest";
+    return `${user}_${suffix}`;
   };
 
   // Load swap history from database and uploaded file from localStorage on mount
   useEffect(() => {
     const loadData = async () => {
+      // Get username from session
+      const session = localStorage.getItem("auth_session");
+      const username = session ? JSON.parse(session).username : "guest";
+      setCurrentUsername(username);
+
       // Load swap history from database
       const { data, error } = await supabase
         .from("swap_history")
@@ -77,14 +83,12 @@ const Index = () => {
       }
 
       // Load uploaded file from localStorage
-      const storageKey = getStorageKey("routeIndex");
+      const storageKey = getStorageKey("routeIndex", username);
       const savedIndex = localStorage.getItem(storageKey);
-      console.log(`Tentando carregar arquivo do localStorage (chave: ${storageKey}):`, savedIndex ? `${savedIndex.length} bytes` : "vazio");
       
       if (savedIndex) {
         try {
           const deserialized = deserializeRouteIndex(savedIndex);
-          console.log("Arquivo desserializado:", deserialized);
           
           // Validar que tem indexBR como Map
           if (
@@ -95,7 +99,6 @@ const Index = () => {
             deserialized.records &&
             Array.isArray(deserialized.records)
           ) {
-            console.log("Index válido. Registros:", deserialized.records.length, "BRs indexados:", deserialized.indexBR.size);
             setIndex(deserialized);
           } else {
             console.warn("Index inválido. Removendo do localStorage.");
@@ -108,7 +111,6 @@ const Index = () => {
           setIndex(null);
         }
       } else {
-        console.log("Nenhum arquivo salvo no localStorage");
         setIndex(null);
       }
     };
@@ -153,9 +155,7 @@ const Index = () => {
   const handleFile = useCallback(async (file: File) => {
     setLoading(true);
     try {
-      console.log(`Carregando arquivo: ${file.name}`);
       const idx = await parseFile(file);
-      console.log("Arquivo parseado:", { records: idx.records.length, brs: idx.indexBR.size });
       
       setIndex(idx);
       
@@ -163,7 +163,6 @@ const Index = () => {
       const serialized = serializeRouteIndex(idx);
       const storageKey = getStorageKey("routeIndex");
       localStorage.setItem(storageKey, serialized);
-      console.log(`Arquivo salvo em localStorage (${storageKey}): ${serialized.length} bytes`);
       
       setResults([]);
       setSelectedSwaps(new Map());
@@ -179,7 +178,6 @@ const Index = () => {
   const handleSearch = useCallback(() => {
     if (!index || !index.indexBR || !(index.indexBR instanceof Map)) {
       toast.error("Nenhum arquivo carregado ou arquivo inválido. Carregue um arquivo primeiro.");
-      console.error("Invalid index:", index);
       return;
     }
 
@@ -236,6 +234,7 @@ const Index = () => {
       ATOrigem: original.AT,
       ATDestino: swap.AT,
       Bairro: swap.Bairro,
+      usuario: currentUsername,
     }));
 
     // Save to database
@@ -251,6 +250,7 @@ const Index = () => {
       at_origem: e.ATOrigem,
       at_destino: e.ATDestino,
       bairro: e.Bairro,
+      usuario: e.usuario,
     }));
 
     const { error } = await supabase.from("swap_history").insert(dbRows);
@@ -281,7 +281,7 @@ const Index = () => {
       </div>,
       { duration: 6000 }
     );
-  }, [selectedSwaps, ciclo]);
+  }, [selectedSwaps, ciclo, currentUsername]);
 
   const swapLabels: SwapLabel[] = Array.from(selectedSwaps.values()).map(({ original, swap }) => ({
     BR: original.BR,
@@ -291,6 +291,29 @@ const Index = () => {
     GaiolaNova: swap.Gaiola,
     Cluster: swap.Cluster,
   }));
+
+  const handleUndoSwap = useCallback(async (entry: SwapHistoryEntry) => {
+    const { error } = await supabase
+      .from("swap_history")
+      .delete()
+      .match({
+        br: entry.BR,
+        at_origem: entry.ATOrigem,
+        at_destino: entry.ATDestino,
+        data: entry.DATA,
+      });
+
+    if (error) {
+      toast.error("Erro ao desfazer troca.");
+      console.error(error);
+      return;
+    }
+
+    setSwapHistory((prev) => 
+      prev.filter((e) => !(e.BR === entry.BR && e.ATOrigem === entry.ATOrigem && e.ATDestino === entry.ATDestino && e.DATA === entry.DATA))
+    );
+    toast.success(`Troca de BR ${entry.BR} desfeita com sucesso!`);
+  }, []);
 
   const allSuggestions = results.flatMap((r) => r.suggestions);
 
@@ -309,6 +332,12 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {currentUsername && (
+              <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1.5">
+                <div className="h-2 w-2 rounded-full bg-primary" />
+                <span className="text-xs font-semibold text-primary">{currentUsername}</span>
+              </div>
+            )}
             <ThemeToggle />
             <FileUpload onFile={handleFile} loading={loading} hasData={!!index} recordCount={index?.records.length ?? 0} onClearCache={handleClearCache} onClearAllData={handleClearAllData} />
             <Button
@@ -337,6 +366,17 @@ const Index = () => {
             >
               <Search className="h-4 w-4" />
               Busca
+            </button>
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === "dashboard"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Dashboard
             </button>
             <button
               onClick={() => setActiveTab("historico")}
@@ -473,6 +513,15 @@ const Index = () => {
               setSwapHistory([]);
               toast.info("Histórico de trocas limpo.");
             }}
+          />
+        )}
+
+        {/* Tab: Dashboard */}
+        {index && activeTab === "dashboard" && (
+          <DashboardPanel 
+            entries={swapHistory} 
+            currentUsername={currentUsername}
+            onUndoSwap={handleUndoSwap}
           />
         )}
 

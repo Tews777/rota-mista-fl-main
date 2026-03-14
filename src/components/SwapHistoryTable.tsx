@@ -13,6 +13,7 @@ export interface SwapHistoryEntry {
   ATOrigem: string;
   ATDestino: string;
   Bairro: string;
+  usuario?: string;
 }
 
 interface SwapHistoryTableProps {
@@ -21,9 +22,9 @@ interface SwapHistoryTableProps {
 }
 
 function exportToExcel(entries: SwapHistoryEntry[]) {
-  const headers = ["DATA", "Ciclo", "Rota - DE", "Modal - DE", "Rota - PARA", "Modal - PARA", "QTD. PACOTES", "BR", "AT ORIGEM", "AT DESTINO", "BAIRRO"];
+  const headers = ["DATA", "Ciclo", "Rota - DE", "Modal - DE", "Rota - PARA", "Modal - PARA", "QTD. PACOTES", "BR", "AT ORIGEM", "AT DESTINO", "BAIRRO", "USUÁRIO"];
   const rows = entries.map(e => [
-    e.DATA, e.Ciclo, e.RotaDE, e.ModalDE, e.RotaPARA, e.ModalPARA, e.QtdPacotes, e.BR, e.ATOrigem, e.ATDestino, e.Bairro,
+    e.DATA, e.Ciclo, e.RotaDE, e.ModalDE, e.RotaPARA, e.ModalPARA, e.QtdPacotes, e.BR, e.ATOrigem, e.ATDestino, e.Bairro, e.usuario || "—",
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   
@@ -78,6 +79,7 @@ export function SwapHistoryTable({ entries, onClear }: SwapHistoryTableProps) {
               <th className="p-2 font-medium">AT ORIGEM</th>
               <th className="p-2 font-medium">AT DESTINO</th>
               <th className="p-2 font-medium">BAIRRO</th>
+              <th className="p-2 font-medium">USUÁRIO</th>
             </tr>
           </thead>
           <tbody>
@@ -94,6 +96,7 @@ export function SwapHistoryTable({ entries, onClear }: SwapHistoryTableProps) {
                 <td className="p-2 font-mono">{e.ATOrigem}</td>
                 <td className="p-2 font-mono">{e.ATDestino}</td>
                 <td className="p-2">{e.Bairro}</td>
+                <td className="p-2 text-xs font-medium">{e.usuario || "—"}</td>
               </tr>
             ))}
           </tbody>
