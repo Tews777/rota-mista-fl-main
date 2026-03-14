@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { Package, Download, ArrowRightLeft, AlertTriangle, Search, History } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Package, Download, ArrowRightLeft, AlertTriangle, Search, History, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { FileUpload } from "@/components/FileUpload";
 import { BRSearchBar } from "@/components/BRSearchBar";
@@ -16,6 +17,7 @@ import {
   type SwapLabel,
 } from "@/lib/routeData";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface BRResult {
@@ -27,6 +29,7 @@ interface BRResult {
 type TabMode = "busca" | "historico";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [index, setIndex] = useState<RouteIndex | null>(null);
   const [loading, setLoading] = useState(false);
   const [brInput, setBrInput] = useState("");
@@ -104,6 +107,15 @@ const Index = () => {
     setSwapHistory([]);
     toast.success("Histórico e arquivo limpos com sucesso!");
   }, []);
+
+  const handleLogout = useCallback(async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Erro ao fazer logout");
+      return;
+    }
+    navigate("/login");
+  }, [navigate]);
 
   const handleFile = useCallback(async (file: File) => {
     setLoading(true);
@@ -252,6 +264,14 @@ const Index = () => {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <FileUpload onFile={handleFile} loading={loading} hasData={!!index} recordCount={index?.records.length ?? 0} onClearCache={handleClearCache} onClearAllData={handleClearAllData} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </header>
