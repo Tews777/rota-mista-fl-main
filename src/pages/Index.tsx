@@ -38,9 +38,10 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabMode>("busca");
   const [ciclo, setCiclo] = useState<"AM" | "PM">("AM");
 
-  // Load swap history from database on mount
+  // Load swap history from database and uploaded file from localStorage on mount
   useEffect(() => {
-    const loadHistory = async () => {
+    const loadData = async () => {
+      // Load swap history from database
       const { data, error } = await supabase
         .from("swap_history")
         .select("*")
@@ -62,8 +63,26 @@ const Index = () => {
           }))
         );
       }
+
+      // Load uploaded file from localStorage
+      const savedIndex = localStorage.getItem("routeIndex");
+      if (savedIndex) {
+        try {
+          setIndex(JSON.parse(savedIndex));
+        } catch (e) {
+          console.error("Failed to parse saved index:", e);
+          localStorage.removeItem("routeIndex");
+        }
+      }
     };
-    loadHistory();
+    loadData();
+  }, []);
+
+  const handleClearCache = useCallback(() => {
+    setIndex(null);
+    setResults([]);
+    setSelectedSwaps(new Map());
+    setBrInput("");
   }, []);
 
   const handleFile = useCallback(async (file: File) => {
@@ -71,6 +90,8 @@ const Index = () => {
     try {
       const idx = await parseFile(file);
       setIndex(idx);
+      // Save to localStorage so it persists on page reload
+      localStorage.setItem("routeIndex", JSON.stringify(idx));
       setResults([]);
       setSelectedSwaps(new Map());
       toast.success(`${idx.records.length.toLocaleString()} registros carregados com sucesso!`);
@@ -210,7 +231,7 @@ const Index = () => {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <FileUpload onFile={handleFile} loading={loading} hasData={!!index} recordCount={index?.records.length ?? 0} />
+            <FileUpload onFile={handleFile} loading={loading} hasData={!!index} recordCount={index?.records.length ?? 0} onClearCache={handleClearCache} />
           </div>
         </div>
       </header>

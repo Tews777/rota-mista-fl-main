@@ -1,4 +1,4 @@
-import { Upload } from "lucide-react";
+import { Upload, RotateCcw } from "lucide-react";
 import { useRef } from "react";
 
 interface FileUploadProps {
@@ -6,10 +6,16 @@ interface FileUploadProps {
   loading: boolean;
   hasData: boolean;
   recordCount: number;
+  onClearCache?: () => void;
 }
 
-export function FileUpload({ onFile, loading, hasData, recordCount }: FileUploadProps) {
+export function FileUpload({ onFile, loading, hasData, recordCount, onClearCache }: FileUploadProps) {
   const ref = useRef<HTMLInputElement>(null);
+
+  const handleClearCache = () => {
+    localStorage.removeItem("routeIndex");
+    onClearCache?.();
+  };
 
   return (
     <div className="flex items-center gap-3">
@@ -32,9 +38,20 @@ export function FileUpload({ onFile, loading, hasData, recordCount }: FileUpload
         {loading ? "Carregando..." : "Upload Planilha"}
       </button>
       {hasData && (
-        <span className="text-xs text-muted-foreground">
-          {recordCount.toLocaleString()} registros carregados
-        </span>
+        <>
+          <span className="text-xs text-muted-foreground">
+            {recordCount.toLocaleString()} registros carregados
+          </span>
+          <button
+            onClick={handleClearCache}
+            disabled={loading}
+            className="flex items-center gap-1 rounded-lg border px-3 py-2.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent disabled:opacity-50"
+            title="Carregar novo arquivo (limpar cache)"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Novo
+          </button>
+        </>
       )}
     </div>
   );
