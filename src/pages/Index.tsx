@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Package, Download, ArrowRightLeft, AlertTriangle, Search, History, LogOut, BarChart3 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { HeaderFileUpload } from "@/components/HeaderFileUpload";
 import { FileUpload } from "@/components/FileUpload";
 import { BRSearchBar } from "@/components/BRSearchBar";
 import { BRResultCard } from "@/components/BRResultCard";
@@ -47,12 +48,6 @@ const Index = () => {
   const [ciclo, setCiclo] = useState<"AM" | "PM">("AM");
   const [currentUsername, setCurrentUsername] = useState<string>("");
   const usernameRef = useRef<string>("");
-
-  // Get current username for per-user storage
-  const getStorageKey = (suffix: string) => {
-    const user = usernameRef.current || currentUsername || "guest";
-    return `${user}_${suffix}`;
-  };
 
   // Load swap history from database and uploaded file from localStorage on mount
   useEffect(() => {
@@ -123,6 +118,7 @@ const Index = () => {
           console.error("❌ Erro ao desserializar index:", e);
           localStorage.removeItem(storageKey);
           setIndex(null);
+          setTotalBRsInFile(0);
         }
       } else {
         console.log("ℹ️ Nenhum arquivo salvo no localStorage");
@@ -134,12 +130,15 @@ const Index = () => {
   }, []);
 
   const handleClearCache = useCallback(() => {
-    localStorage.removeItem(getStorageKey("routeIndex"));
+    const storageKey = getStorageKey("routeIndex");
+    localStorage.removeItem(storageKey);
+    localStorage.removeItem(`${usernameRef.current || currentUsername || "guest"}_routeIndex`);
     setIndex(null);
     setResults([]);
     setSelectedSwaps(new Map());
     setBrInput("");
-  }, []);
+    setTotalBRsInFile(0);
+  }, [currentUsername]);
 
   const handleClearAllData = useCallback(async () => {
     // Limpa arquivo em cache (per-user)
@@ -187,16 +186,20 @@ const Index = () => {
       
       // Save to localStorage using proper serialization (per-user)
       const serialized = serializeRouteIndex(idx);
-      const storageKey = getStorageKey("routeIndex");
+      const storageKey = `${usernameRef.current || currentUsername || "guest"}_routeIndex`;
+      
+      console.log("💾 Salvando arquivo:", { storageKey, tamanho: serialized.length, registros: idx.records.length });
       
       // Check localStorage quota before saving
       try {
         localStorage.setItem(storageKey, serialized);
+        console.log("✅ Arquivo salvo com sucesso no localStorage");
       } catch (storageError: any) {
         if (storageError.name === 'QuotaExceededError') {
           toast.error("Arquivo muito grande para salvar em cache. Usando modo temporário.");
           console.warn("localStorage quota exceeded, using memory cache only");
         } else {
+          console.error("Erro ao salvar:", storageError);
           throw storageError;
         }
       }
@@ -210,7 +213,7 @@ const Index = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUsername]);
 
   const handleSearch = useCallback(() => {
     if (!index || !index.indexBR || !(index.indexBR instanceof Map)) {
@@ -378,6 +381,7 @@ const Index = () => {
                 <span className="text-xs font-semibold text-primary">{currentUsername}</span>
               </div>
             )}
+            {index && <HeaderFileUpload onFile={handleFile} loading={loading} />}
             <ThemeToggle />
             <Button
               variant="ghost"
