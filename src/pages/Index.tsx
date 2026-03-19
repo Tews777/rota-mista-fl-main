@@ -14,6 +14,7 @@ import {
   exportCSV,
   serializeRouteIndex,
   deserializeRouteIndex,
+  normalizeVehicleType,
   type RouteIndex,
   type RouteRecord,
   type FilterMode,
@@ -245,9 +246,9 @@ const Index = () => {
       DATA: dateStr,
       Ciclo: ciclo,
       RotaDE: original.Gaiola,
-      ModalDE: original.TipoVeiculo,
+      ModalDE: normalizeVehicleType(original.TipoVeiculo),
       RotaPARA: swap.Gaiola,
-      ModalPARA: swap.TipoVeiculo,
+      ModalPARA: normalizeVehicleType(swap.TipoVeiculo),
       QtdPacotes: "1",
       BR: original.BR,
       ATOrigem: original.AT,
@@ -530,6 +531,39 @@ const Index = () => {
                     onToggleSwap={(at, rec) => handleToggleSwap(r.br, r.records[0], at, rec)}
                   />
                 )
+              )}
+
+              {/* Sticky action bar at the bottom of results */}
+              {selectedSwaps.size > 0 && (
+                <div className="sticky bottom-0 animate-fade-in rounded-xl border bg-card/95 backdrop-blur p-4 shadow-lg flex flex-wrap items-center justify-between gap-3 mt-6">
+                  <div className="text-sm font-medium text-muted-foreground">
+                    <span className="text-primary font-semibold">{selectedSwaps.size} troca(s)</span> selecionada(s)
+                  </div>
+                  <div className="flex gap-2 ml-auto">
+                    {allSuggestions.length > 0 && (
+                      <button
+                        onClick={() => exportCSV(allSuggestions)}
+                        className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                      >
+                        <Download className="h-4 w-4" />
+                        Exportar CSV
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowLabels(true)}
+                      className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                    >
+                      Etiquetas
+                    </button>
+                    <button
+                      onClick={handleConfirmSwaps}
+                      className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90"
+                    >
+                      <ArrowRightLeft className="h-4 w-4" />
+                      Confirmar Trocas ({selectedSwaps.size})
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </>

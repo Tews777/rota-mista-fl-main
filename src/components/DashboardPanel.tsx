@@ -10,7 +10,7 @@ interface DashboardPanelProps {
 }
 
 export function DashboardPanel({ entries, currentUsername, onUndoSwap }: DashboardPanelProps) {
-  const [selectedDateRange, setSelectedDateRange] = useState<"today" | "week" | "month" | "all">("today");
+  const [selectedDateRange, setSelectedDateRange] = useState<"today" | "week" | "month" | "all">("all");
   const [undoLoading, setUndoLoading] = useState<number | null>(null);
 
   // Extract unique users
@@ -55,12 +55,14 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
   // Statistics
   const stats = useMemo(() => {
     const totalSwaps = filteredEntries.length;
+    const totalBRs = filteredEntries.length; // Volume total de BRs (considerando repetições)
     const uniqueBRs = new Set(filteredEntries.map((e) => e.BR)).size;
+    const totalRoutes = filteredEntries.length; // Total de rotas movimentadas (cada swap move uma rota)
     const uniqueRoutes = new Set(
       filteredEntries.flatMap((e) => [e.RotaDE, e.RotaPARA])
     ).size;
 
-    return { totalSwaps, uniqueBRs, uniqueRoutes };
+    return { totalSwaps, totalBRs, uniqueBRs, totalRoutes, uniqueRoutes };
   }, [filteredEntries]);
 
   // Most swapped routes
@@ -147,7 +149,7 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="animate-fade-in rounded-xl border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -156,6 +158,18 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <TrendingUp className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+        </div>
+
+        <div className="animate-fade-in rounded-xl border bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Volume de BRs</p>
+              <p className="text-2xl font-bold">{stats.totalBRs}</p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
+              <BarChart3 className="h-5 w-5 text-orange-500" />
             </div>
           </div>
         </div>
@@ -176,7 +190,7 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Rotas Movimentadas</p>
-              <p className="text-2xl font-bold">{stats.uniqueRoutes}</p>
+              <p className="text-2xl font-bold">{stats.totalRoutes}</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
               <TrendingUp className="h-5 w-5 text-green-500" />
@@ -263,7 +277,7 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
           <div className="border-b px-4 py-3">
             <h3 className="font-display text-sm font-bold">Trocas Recentes (com opção de desfazer)</h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-96 overflow-y-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">

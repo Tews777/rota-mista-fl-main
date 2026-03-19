@@ -141,6 +141,28 @@ export function parseFile(file: File): Promise<RouteIndex> {
 
 export type FilterMode = "cluster" | "bairro" | "ambos";
 
+// Normalizar tipo de veículo para formato padrão
+export function normalizeVehicleType(type: string): string {
+  if (!type) return "";
+  const normalized = type.trim().toUpperCase();
+  
+  const mapping: Record<string, string> = {
+    "MOTO": "Moto",
+    "PASSEIO": "Passeio",
+    "FIORINO": "Utilitário",
+    "VAN": "Van",
+  };
+  
+  return mapping[normalized] || type; // Retorna o mapeado ou o original se não encontrar
+}
+
+// Extrair apenas a data (sem hora) do formato "DD/MM/YYYY HH:MM:SS"
+export function extractDateOnly(dataWithTime: string): string {
+  if (!dataWithTime) return "";
+  const datePart = dataWithTime.split(" ")[0]; // Pega apenas "DD/MM/YYYY"
+  return datePart;
+}
+
 export function findSuggestions(
   record: RouteRecord,
   index: RouteIndex,

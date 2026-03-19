@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
 import * as XLSX from "xlsx";
+import { normalizeVehicleType, extractDateOnly } from "@/lib/routeData";
 
 export interface SwapHistoryEntry {
   DATA: string;
@@ -23,7 +24,7 @@ interface SwapHistoryTableProps {
 function exportToExcel(entries: SwapHistoryEntry[]) {
   const headers = ["DATA", "Ciclo", "Rota - DE", "Modal - DE", "Rota - PARA", "Modal - PARA", "QTD. PACOTES", "BR", "AT ORIGEM", "AT DESTINO", "BAIRRO"];
   const rows = entries.map(e => [
-    e.DATA, e.Ciclo, e.RotaDE, e.ModalDE, e.RotaPARA, e.ModalPARA, e.QtdPacotes, e.BR, e.ATOrigem, e.ATDestino, e.Bairro,
+    extractDateOnly(e.DATA), e.Ciclo, e.RotaDE, normalizeVehicleType(e.ModalDE), e.RotaPARA, normalizeVehicleType(e.ModalPARA), e.QtdPacotes, e.BR, e.ATOrigem, e.ATDestino, e.Bairro,
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   
@@ -83,12 +84,12 @@ export function SwapHistoryTable({ entries, onClear }: SwapHistoryTableProps) {
           <tbody>
             {entries.map((e, i) => (
               <tr key={i} className="border-b last:border-0 hover:bg-accent/50 transition-colors">
-                <td className="p-2">{e.DATA}</td>
+                <td className="p-2">{extractDateOnly(e.DATA)}</td>
                 <td className="p-2">{e.Ciclo}</td>
                 <td className="p-2 font-mono">{e.RotaDE}</td>
-                <td className="p-2">{e.ModalDE}</td>
+                <td className="p-2">{normalizeVehicleType(e.ModalDE)}</td>
                 <td className="p-2 font-mono">{e.RotaPARA}</td>
-                <td className="p-2">{e.ModalPARA}</td>
+                <td className="p-2">{normalizeVehicleType(e.ModalPARA)}</td>
                 <td className="p-2 text-center">{e.QtdPacotes}</td>
                 <td className="p-2 font-mono">{e.BR}</td>
                 <td className="p-2 font-mono">{e.ATOrigem}</td>
