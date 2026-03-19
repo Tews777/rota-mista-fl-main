@@ -4,6 +4,7 @@ import { Package, Download, ArrowRightLeft, AlertTriangle, Search, History, LogO
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HeaderFileUpload } from "@/components/HeaderFileUpload";
 import { FileUpload } from "@/components/FileUpload";
+import { StorageDebug } from "@/components/StorageDebug";
 import { BRSearchBar } from "@/components/BRSearchBar";
 import { BRResultCard } from "@/components/BRResultCard";
 import { PrintLabels } from "@/components/PrintLabels";
@@ -130,15 +131,17 @@ const Index = () => {
   }, []);
 
   const handleClearCache = useCallback(() => {
-    const storageKey = getStorageKey("routeIndex");
+    const username = usernameRef.current || "guest";
+    const storageKey = `${username}_routeIndex`;
+    console.log("🗑️ Limpando cache:", { username, storageKey });
     localStorage.removeItem(storageKey);
-    localStorage.removeItem(`${usernameRef.current || currentUsername || "guest"}_routeIndex`);
     setIndex(null);
     setResults([]);
     setSelectedSwaps(new Map());
     setBrInput("");
     setTotalBRsInFile(0);
-  }, [currentUsername]);
+    toast.success("Arquivo removido. Você pode fazer upload de um novo.");
+  }, []);
 
   const handleClearAllData = useCallback(async () => {
     // Limpa arquivo em cache (per-user)
@@ -184,22 +187,34 @@ const Index = () => {
       const totalUniqueBRs = idx.indexBR.size;
       setTotalBRsInFile(totalUniqueBRs);
       
+      // IMPORTANTE: Usar usernameRef.current que foi preenchido no loadData
+      const username = usernameRef.current || "guest";
+      const storageKey = `${username}_routeIndex`;
+      
       // Save to localStorage using proper serialization (per-user)
       const serialized = serializeRouteIndex(idx);
-      const storageKey = `${usernameRef.current || currentUsername || "guest"}_routeIndex`;
       
-      console.log("💾 Salvando arquivo:", { storageKey, tamanho: serialized.length, registros: idx.records.length });
+      console.log("💾 Salvando arquivo:", { username, storageKey, tamanho: serialized.length, registros: idx.records.length });
+      console.log("💾 Dados serializados:", { tamanho: serialized.length, primeirosCars: serialized.substring(0, 50) });
       
       // Check localStorage quota before saving
       try {
         localStorage.setItem(storageKey, serialized);
-        console.log("✅ Arquivo salvo com sucesso no localStorage");
+        const verificacao = localStorage.getItem(storageKey);
+        console.log("✅ Arquivo salvo com sucesso:", { 
+          tamanho_original: serialized.length, 
+          tamanho_verificacao: verificacao?.length,
+          match: verificacao === serialized
+        });
+        
+        // Log todas as chaves do localStorage após salvar
+        console.log("📦 Chaves no localStorage após salvar:", Object.keys(localStorage));
       } catch (storageError: any) {
         if (storageError.name === 'QuotaExceededError') {
           toast.error("Arquivo muito grande para salvar em cache. Usando modo temporário.");
-          console.warn("localStorage quota exceeded, using memory cache only");
+          console.error("localStorage quota exceeded");
         } else {
-          console.error("Erro ao salvar:", storageError);
+          console.error("❌ Erro ao salvar no localStorage:", storageError);
           throw storageError;
         }
       }
@@ -213,7 +228,7 @@ const Index = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentUsername]);
+  }, []);
 
   const handleSearch = useCallback(() => {
     if (!index || !index.indexBR || !(index.indexBR instanceof Map)) {
@@ -647,6 +662,7 @@ const Index = () => {
       </main>
 
       {showLabels && <PrintLabels labels={swapLabels} onClose={() => setShowLabels(false)} />}
+      <StorageDebug />
     </div>
   );
 };
