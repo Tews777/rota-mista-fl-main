@@ -50,6 +50,7 @@ const Index = () => {
   const [ciclo, setCiclo] = useState<"AM" | "PM">("AM");
   const [currentUsername, setCurrentUsername] = useState<string>("");
   const usernameRef = useRef<string>("");
+  const [usernameLoaded, setUsernameLoaded] = useState(false);
 
   // Load swap history from database and uploaded file from localStorage on mount
   useEffect(() => {
@@ -135,6 +136,9 @@ const Index = () => {
         setIndex(null);
         setTotalBRsInFile(0);
       }
+      
+      // Marcar que username foi carregado - CRÍTICO para handleFile
+      setUsernameLoaded(true);
     };
     loadData();
   }, []);
@@ -191,6 +195,17 @@ const Index = () => {
   }, [navigate]);
 
   const handleFile = useCallback(async (file: File) => {
+    // Verificar se username foi carregado
+    const username = usernameRef.current || currentUsername;
+    
+    if (!username || username === "") {
+      toast.error("Erro: Username não foi carregado. Recarregue a página.");
+      console.error("❌ Username não disponível:", { ref: usernameRef.current, state: currentUsername });
+      return;
+    }
+    
+    console.log("📁 Iniciando upload:", { username, file: file.name });
+    
     setLoading(true);
     try {
       const idx = await parseFile(file);
@@ -201,8 +216,7 @@ const Index = () => {
       const totalUniqueBRs = idx.indexBR.size;
       setTotalBRsInFile(totalUniqueBRs);
       
-      // IMPORTANTE: Usar usernameRef.current que foi preenchido no loadData
-      const username = usernameRef.current || "guest";
+      // CRÍTICO: Usar sempre usernameRef.current
       const storageKey = `${username}_routeIndex`;
       
       // Save to localStorage using proper serialization (per-user)
@@ -245,7 +259,7 @@ const Index = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [usernameLoaded, currentUsername]);
 
   const handleSearch = useCallback(() => {
     if (!index || !index.indexBR || !(index.indexBR instanceof Map)) {
@@ -480,7 +494,7 @@ const Index = () => {
               <div className="mb-6 animate-fade-in">
                 <FileUpload 
                   onFile={handleFile}
-                  loading={loading}
+                  loading={loading || !usernameLoaded}
                   hasData={!!index}
                   recordCount={index?.records.length || 0}
                   onClearCache={handleClearCache}
