@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Package, Download, ArrowRightLeft, AlertTriangle, Search, History, LogOut, BarChart3 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -46,10 +46,11 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabMode>("busca");
   const [ciclo, setCiclo] = useState<"AM" | "PM">("AM");
   const [currentUsername, setCurrentUsername] = useState<string>("");
+  const usernameRef = useRef<string>("");
 
   // Get current username for per-user storage
-  const getStorageKey = (suffix: string, username?: string) => {
-    const user = username || currentUsername || "guest";
+  const getStorageKey = (suffix: string) => {
+    const user = usernameRef.current || currentUsername || "guest";
     return `${user}_${suffix}`;
   };
 
@@ -59,6 +60,9 @@ const Index = () => {
       // Get username from session
       const session = localStorage.getItem("auth_session");
       const username = session ? JSON.parse(session).username : "guest";
+      
+      // Store in ref imediatamente para ser usado em getStorageKey
+      usernameRef.current = username;
       setCurrentUsername(username);
 
       // Load swap history from database
@@ -86,9 +90,11 @@ const Index = () => {
         console.error("Erro ao carregar histórico:", error);
       }
 
-      // Load uploaded file from localStorage
-      const storageKey = getStorageKey("routeIndex", username);
+      // Load uploaded file from localStorage usando chave do username
+      const storageKey = `${username}_routeIndex`;
       const savedIndex = localStorage.getItem(storageKey);
+      
+      console.log("🔍 Tentando carregar arquivo:", { username, storageKey, temDados: !!savedIndex });
       
       if (savedIndex) {
         try {
@@ -103,22 +109,25 @@ const Index = () => {
             deserialized.records &&
             Array.isArray(deserialized.records)
           ) {
+            console.log("✅ Arquivo carregado com sucesso:", { brsUnicos: deserialized.indexBR.size });
             setIndex(deserialized);
             // Calcular total de BRs únicos no arquivo
             setTotalBRsInFile(deserialized.indexBR.size);
           } else {
-            console.warn("Index inválido. Removendo do localStorage.");
+            console.warn("❌ Index inválido. Removendo do localStorage.");
             localStorage.removeItem(storageKey);
             setIndex(null);
             setTotalBRsInFile(0);
           }
         } catch (e) {
-          console.error("Erro ao desserializar index:", e);
+          console.error("❌ Erro ao desserializar index:", e);
           localStorage.removeItem(storageKey);
           setIndex(null);
         }
       } else {
+        console.log("ℹ️ Nenhum arquivo salvo no localStorage");
         setIndex(null);
+        setTotalBRsInFile(0);
       }
     };
     loadData();
