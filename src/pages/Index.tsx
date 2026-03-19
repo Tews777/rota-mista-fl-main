@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { HeaderFileUpload } from "@/components/HeaderFileUpload";
 import { FileUpload } from "@/components/FileUpload";
 import { StorageDebug } from "@/components/StorageDebug";
+import { saveToIndexedDB, loadFromIndexedDB, removeFromIndexedDB, clearIndexedDB } from "@/lib/indexedDB";
 import { BRSearchBar } from "@/components/BRSearchBar";
 import { BRResultCard } from "@/components/BRResultCard";
 import { PrintLabels } from "@/components/PrintLabels";
@@ -88,9 +89,15 @@ const Index = () => {
 
       // Load uploaded file from localStorage usando chave do username
       const storageKey = `${username}_routeIndex`;
-      const savedIndex = localStorage.getItem(storageKey);
+      let savedIndex = localStorage.getItem(storageKey);
       
       console.log("🔍 Tentando carregar arquivo:", { username, storageKey, temDados: !!savedIndex });
+      
+      // Se não encontrar no localStorage, tenta IndexedDB
+      if (!savedIndex) {
+        console.log("🔄 localStorage vazio, tentando IndexedDB...");
+        savedIndex = await loadFromIndexedDB(username);
+      }
       
       if (savedIndex) {
         try {
@@ -110,19 +117,21 @@ const Index = () => {
             // Calcular total de BRs únicos no arquivo
             setTotalBRsInFile(deserialized.indexBR.size);
           } else {
-            console.warn("❌ Index inválido. Removendo do localStorage.");
+            console.warn("❌ Index inválido. Removendo.");
             localStorage.removeItem(storageKey);
+            await removeFromIndexedDB(username);
             setIndex(null);
             setTotalBRsInFile(0);
           }
         } catch (e) {
           console.error("❌ Erro ao desserializar index:", e);
           localStorage.removeItem(storageKey);
+          await removeFromIndexedDB(username);
           setIndex(null);
           setTotalBRsInFile(0);
         }
       } else {
-        console.log("ℹ️ Nenhum arquivo salvo no localStorage");
+        console.log("ℹ️ Nenhum arquivo encontrado");
         setIndex(null);
         setTotalBRsInFile(0);
       }
@@ -130,11 +139,12 @@ const Index = () => {
     loadData();
   }, []);
 
-  const handleClearCache = useCallback(() => {
+  const handleClearCache = useCallback(async () => {
     const username = usernameRef.current || "guest";
     const storageKey = `${username}_routeIndex`;
     console.log("🗑️ Limpando cache:", { username, storageKey });
     localStorage.removeItem(storageKey);
+    await removeFromIndexedDB(username);
     setIndex(null);
     setResults([]);
     setSelectedSwaps(new Map());
@@ -144,8 +154,12 @@ const Index = () => {
   }, []);
 
   const handleClearAllData = useCallback(async () => {
+    const username = usernameRef.current || "guest";
+    const storageKey = `${username}_routeIndex`;
+    
     // Limpa arquivo em cache (per-user)
-    localStorage.removeItem(getStorageKey("routeIndex"));
+    localStorage.removeItem(storageKey);
+    await removeFromIndexedDB(username);
     setIndex(null);
     setResults([]);
     setSelectedSwaps(new Map());
@@ -195,33 +209,36 @@ const Index = () => {
       const serialized = serializeRouteIndex(idx);
       
       console.log("💾 Salvando arquivo:", { username, storageKey, tamanho: serialized.length, registros: idx.records.length });
-      console.log("💾 Dados serializados:", { tamanho: serialized.length, primeirosCars: serialized.substring(0, 50) });
       
-      // Check localStorage quota before saving
+      // Tentar localStorage primeiro
+      let savedToLocalStorage = false;
       try {
         localStorage.setItem(storageKey, serialized);
-        const verificacao = localStorage.getItem(storageKey);
-        console.log("✅ Arquivo salvo com sucesso:", { 
-          tamanho_original: serialized.length, 
-          tamanho_verificacao: verificacao?.length,
-          match: verificacao === serialized
-        });
-        
-        // Log todas as chaves do localStorage após salvar
-        console.log("📦 Chaves no localStorage após salvar:", Object.keys(localStorage));
+        console.log("✅ Arquivo salvo em localStorage");
+        savedToLocalStorage = true;
       } catch (storageError: any) {
         if (storageError.name === 'QuotaExceededError') {
-          toast.error("Arquivo muito grande para salvar em cache. Usando modo temporário.");
-          console.error("localStorage quota exceeded");
+          console.warn("⚠️ localStorage cheio, usando IndexedDB...");
         } else {
-          console.error("❌ Erro ao salvar no localStorage:", storageError);
-          throw storageError;
+          console.error("❌ Erro ao salvar em localStorage:", storageError);
         }
+      }
+      
+      // Se localStorage falhou, salvar em IndexedDB
+      if (!savedToLocalStorage) {
+        console.log("💾 Tentando salvar em IndexedDB...");
+        const savedToIndexedDB = await saveToIndexedDB(username, serialized);
+        if (savedToIndexedDB) {
+          toast.success(`${idx.records.length.toLocaleString()} registros carregados! (Armazenamento: IndexedDB)`);
+        } else {
+          toast.warning(`${idx.records.length.toLocaleString()} registros carregados, mas sem persistência.`);
+        }
+      } else {
+        toast.success(`${idx.records.length.toLocaleString()} registros carregados com sucesso!`);
       }
       
       setResults([]);
       setSelectedSwaps(new Map());
-      toast.success(`${idx.records.length.toLocaleString()} registros carregados com sucesso!`);
     } catch (err) {
       console.error("Erro ao processar arquivo:", err);
       toast.error("Erro ao processar arquivo. Verifique o formato.");
