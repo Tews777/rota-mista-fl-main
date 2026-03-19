@@ -7,9 +7,10 @@ interface DashboardPanelProps {
   entries: SwapHistoryEntry[];
   currentUsername: string;
   onUndoSwap: (entry: SwapHistoryEntry) => Promise<void>;
+  totalBRsInFile?: number;
 }
 
-export function DashboardPanel({ entries, currentUsername, onUndoSwap }: DashboardPanelProps) {
+export function DashboardPanel({ entries, currentUsername, onUndoSwap, totalBRsInFile = 0 }: DashboardPanelProps) {
   const [selectedDateRange, setSelectedDateRange] = useState<"today" | "week" | "month" | "all">("all");
   const [undoLoading, setUndoLoading] = useState<number | null>(null);
 
@@ -149,7 +150,19 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap }: Dashboa
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="animate-fade-in rounded-xl border-2 border-primary bg-primary/5 p-4 shadow-md lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">BRs no Arquivo</p>
+              <p className="text-3xl font-bold text-primary">{totalBRsInFile}</p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20">
+              <BarChart3 className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+        </div>
+
         <div className="animate-fade-in rounded-xl border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>

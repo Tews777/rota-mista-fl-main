@@ -35,6 +35,7 @@ type TabMode = "busca" | "historico" | "dashboard";
 const Index = () => {
   const navigate = useNavigate();
   const [index, setIndex] = useState<RouteIndex | null>(null);
+  const [totalBRsInFile, setTotalBRsInFile] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [brInput, setBrInput] = useState("");
   const [filter, setFilter] = useState<FilterMode>("cluster");
@@ -103,10 +104,13 @@ const Index = () => {
             Array.isArray(deserialized.records)
           ) {
             setIndex(deserialized);
+            // Calcular total de BRs únicos no arquivo
+            setTotalBRsInFile(deserialized.indexBR.size);
           } else {
             console.warn("Index inválido. Removendo do localStorage.");
             localStorage.removeItem(storageKey);
             setIndex(null);
+            setTotalBRsInFile(0);
           }
         } catch (e) {
           console.error("Erro ao desserializar index:", e);
@@ -167,6 +171,10 @@ const Index = () => {
       const idx = await parseFile(file);
       
       setIndex(idx);
+      
+      // Calcular total de BRs únicos no arquivo
+      const totalUniqueBRs = idx.indexBR.size;
+      setTotalBRsInFile(totalUniqueBRs);
       
       // Save to localStorage using proper serialization (per-user)
       const serialized = serializeRouteIndex(idx);
@@ -600,6 +608,7 @@ const Index = () => {
               entries={swapHistory} 
               currentUsername={currentUsername}
               onUndoSwap={handleUndoSwap}
+              totalBRsInFile={totalBRsInFile}
             />
             {swapHistory.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
