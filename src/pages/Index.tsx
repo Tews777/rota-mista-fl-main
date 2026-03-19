@@ -51,6 +51,7 @@ const Index = () => {
   const [currentUsername, setCurrentUsername] = useState<string>("");
   const usernameRef = useRef<string>("");
   const [usernameLoaded, setUsernameLoaded] = useState(false);
+  const [totalUniqueRoutes, setTotalUniqueRoutes] = useState<number>(0);
 
   // Load swap history from database and uploaded file from localStorage on mount
   useEffect(() => {
@@ -117,12 +118,16 @@ const Index = () => {
             setIndex(deserialized);
             // Calcular total de BRs únicos no arquivo
             setTotalBRsInFile(deserialized.indexBR.size);
+            // Calcular total de rotas únicas
+            const uniqueRoutes = new Set(deserialized.records.map((r: any) => r.Gaiola));
+            setTotalUniqueRoutes(uniqueRoutes.size);
           } else {
             console.warn("❌ Index inválido. Removendo.");
             localStorage.removeItem(storageKey);
             await removeFromIndexedDB(username);
             setIndex(null);
             setTotalBRsInFile(0);
+            setTotalUniqueRoutes(0);
           }
         } catch (e) {
           console.error("❌ Erro ao desserializar index:", e);
@@ -130,11 +135,13 @@ const Index = () => {
           await removeFromIndexedDB(username);
           setIndex(null);
           setTotalBRsInFile(0);
+          setTotalUniqueRoutes(0);
         }
       } else {
         console.log("ℹ️ Nenhum arquivo encontrado");
         setIndex(null);
         setTotalBRsInFile(0);
+        setTotalUniqueRoutes(0);
       }
       
       // Marcar que username foi carregado - CRÍTICO para handleFile
@@ -154,6 +161,7 @@ const Index = () => {
     setSelectedSwaps(new Map());
     setBrInput("");
     setTotalBRsInFile(0);
+    setTotalUniqueRoutes(0);
     toast.success("Arquivo removido. Você pode fazer upload de um novo.");
   }, []);
 
@@ -168,6 +176,8 @@ const Index = () => {
     setResults([]);
     setSelectedSwaps(new Map());
     setBrInput("");
+    setTotalBRsInFile(0);
+    setTotalUniqueRoutes(0);
     
     // Limpa histórico do Supabase
     try {
@@ -211,6 +221,10 @@ const Index = () => {
       const idx = await parseFile(file);
       
       setIndex(idx);
+      
+      // Contar rotas ÚNICAS (Gaiola/Corridor)
+      const uniqueRoutes = new Set(idx.records.map((r: any) => r.Gaiola));
+      setTotalUniqueRoutes(uniqueRoutes.size);
       
       // Calcular total de BRs únicos no arquivo
       const totalUniqueBRs = idx.indexBR.size;
@@ -668,6 +682,7 @@ const Index = () => {
               currentUsername={currentUsername}
               onUndoSwap={handleUndoSwap}
               totalBRsInFile={totalBRsInFile}
+              totalUniqueRoutes={totalUniqueRoutes}
             />
             {swapHistory.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">

@@ -8,9 +8,10 @@ interface DashboardPanelProps {
   currentUsername: string;
   onUndoSwap: (entry: SwapHistoryEntry) => Promise<void>;
   totalBRsInFile?: number;
+  totalUniqueRoutes?: number;
 }
 
-export function DashboardPanel({ entries, currentUsername, onUndoSwap, totalBRsInFile = 0 }: DashboardPanelProps) {
+export function DashboardPanel({ entries, currentUsername, onUndoSwap, totalBRsInFile = 0, totalUniqueRoutes = 0 }: DashboardPanelProps) {
   const [selectedDateRange, setSelectedDateRange] = useState<"today" | "week" | "month" | "all">("all");
   const [undoLoading, setUndoLoading] = useState<number | null>(null);
 
@@ -178,8 +179,8 @@ export function DashboardPanel({ entries, currentUsername, onUndoSwap, totalBRsI
         <div className="animate-fade-in rounded-xl border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Volume de BRs</p>
-              <p className="text-2xl font-bold">{stats.totalBRs}</p>
+              <p className="text-xs text-muted-foreground">Quantidade de Rotas</p>
+              <p className="text-2xl font-bold">{totalUniqueRoutes}</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
               <BarChart3 className="h-5 w-5 text-orange-500" />
