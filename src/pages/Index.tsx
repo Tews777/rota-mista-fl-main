@@ -89,20 +89,35 @@ const Index = () => {
         console.error("Erro ao carregar histórico:", error);
       }
 
-      // Load uploaded file from localStorage
-      // Tenta primeiro a chave COMPARTILHADA, depois a individual (compatibilidade)
-      let savedIndex = localStorage.getItem("shared_routeIndex");
-      const userStorageKey = `${username}_routeIndex`;
-      
-      if (!savedIndex) {
-        savedIndex = localStorage.getItem(userStorageKey);
+      // Load uploaded file from Supabase (sync between all computers)
+      console.log("🔍 Carregando arquivo compartilhado do Supabase...");
+      const { data: fileData, error: fileError } = await supabase
+        .from("shared_file")
+        .select("file_data, filename, total_records, unique_brs")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      let savedIndex: string | null = null;
+
+      if (!fileError && fileData && fileData.length > 0) {
+        console.log("✅ Arquivo encontrado no Supabase:", { 
+          filename: fileData[0].filename, 
+          records: fileData[0].total_records 
+        });
+        savedIndex = fileData[0].file_data;
+      } else {
+        console.log("ℹ️ Nenhum arquivo no Supabase. Tentando localStorage...");
+        // Fallback: tenta localStorage (compatibilidade com versão anterior)
+        savedIndex = localStorage.getItem("shared_routeIndex");
+        const userStorageKey = `${username}_routeIndex`;
+        if (!savedIndex) {
+          savedIndex = localStorage.getItem(userStorageKey);
+        }
       }
-      
-      console.log("🔍 Tentando carregar arquivo:", { username, compartilhado: !!localStorage.getItem("shared_routeIndex"), individual: !!localStorage.getItem(userStorageKey), temDados: !!savedIndex });
-      
-      // Se não encontrar no localStorage, tenta IndexedDB
+
+      // Se não encontrar em nenhum lugar, tenta IndexedDB
       if (!savedIndex) {
-        console.log("🔄 localStorage vazio, tentando IndexedDB...");
+        console.log("🔄 Tentando IndexedDB...");
         savedIndex = await loadFromIndexedDB(username);
       }
       
@@ -126,10 +141,14 @@ const Index = () => {
             // Calcular total de rotas únicas
             const uniqueRoutes = new Set(deserialized.records.map((r: any) => r.Gaiola));
             setTotalUniqueRoutes(uniqueRoutes.size);
+            toast.success("📁 Arquivo carregado do servidor compartilhado!");
           } else {
             console.warn("❌ Index inválido. Removendo.");
+            // Limpa do Supabase
+            await supabase.from("shared_file").delete().neq("id", "");
+            // Limpa localStorage
             localStorage.removeItem("shared_routeIndex");
-            localStorage.removeItem(userStorageKey);
+            localStorage.removeItem(`${username}_routeIndex`);
             await removeFromIndexedDB(username);
             setIndex(null);
             setTotalBRsInFile(0);
@@ -138,14 +157,14 @@ const Index = () => {
         } catch (e) {
           console.error("❌ Erro ao desserializar index:", e);
           localStorage.removeItem("shared_routeIndex");
-          localStorage.removeItem(userStorageKey);
+          localStorage.removeItem(`${username}_routeIndex`);
           await removeFromIndexedDB(username);
           setIndex(null);
           setTotalBRsInFile(0);
           setTotalUniqueRoutes(0);
         }
       } else {
-        console.log("ℹ️ Nenhum arquivo encontrado");
+        console.log("ℹ️ Nenhum arquivo encontrado em nenhuma fonte");
         setIndex(null);
         setTotalBRsInFile(0);
         setTotalUniqueRoutes(0);
@@ -156,33 +175,50 @@ const Index = () => {
     };
     loadData();
 
-    // Listener para detectar quando outro usuário faz upload em outra aba
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "shared_routeIndex" && e.newValue) {
-        console.log("🔄 Detectado arquivo compartilhado atualizado em outra aba!");
-        try {
-          const deserialized = deserializeRouteIndex(e.newValue);
-          if (
-            deserialized &&
-            deserialized.indexBR &&
-            deserialized.indexBR instanceof Map &&
-            deserialized.indexBR.size > 0
-          ) {
-            console.log("✅ Recarregando arquivo compartilhado:", { brsUnicos: deserialized.indexBR.size });
-            setIndex(deserialized);
-            setTotalBRsInFile(deserialized.indexBR.size);
-            const uniqueRoutes = new Set(deserialized.records.map((r: any) => r.Gaiola));
-            setTotalUniqueRoutes(uniqueRoutes.size);
-            toast.success("📁 Arquivo atualizado em tempo real!");
+    // Listener Supabase Realtime para detectar quando outros computadores/usuários fazem upload
+    const channel = supabase
+      .channel("shared_file_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "shared_file",
+        },
+        (payload) => {
+          // Recarregar arquivo quando detectar mudança no Supabase
+          console.log("🔄 Detectado arquivo atualizado por outro usuário/computador!");
+          if (payload.new.file_data) {
+            try {
+              const deserialized = deserializeRouteIndex(payload.new.file_data);
+              if (
+                deserialized &&
+                deserialized.indexBR &&
+                deserialized.indexBR instanceof Map &&
+                deserialized.indexBR.size > 0
+              ) {
+                console.log("✅ Recarregando arquivo:", { 
+                  uploadedBy: payload.new.uploaded_by, 
+                  brsUnicos: deserialized.indexBR.size 
+                });
+                setIndex(deserialized);
+                setTotalBRsInFile(deserialized.indexBR.size);
+                const uniqueRoutes = new Set(deserialized.records.map((r: any) => r.Gaiola));
+                setTotalUniqueRoutes(uniqueRoutes.size);
+                toast.success(`📁 Arquivo atualizado por ${payload.new.uploaded_by}!`);
+              }
+            } catch (err) {
+              console.error("❌ Erro ao recarregar arquivo:", err);
+            }
           }
-        } catch (err) {
-          console.error("❌ Erro ao recarregar arquivo:", err);
         }
-      }
-    };
+      )
+      .subscribe();
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    // Cleanup: remover listener ao desmontar
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleClearCache = useCallback(async () => {
@@ -275,16 +311,38 @@ const Index = () => {
       // Save to localStorage using proper serialization
       const serialized = serializeRouteIndex(idx);
       
-      console.log("💾 Salvando arquivo:", { username, chaveCompartilhada: sharedStorageKey, chaveIndividual: userStorageKey, tamanho: serialized.length, registros: idx.records.length });
+      console.log("💾 Salvando arquivo:", { username, tamanho: serialized.length, registros: idx.records.length });
       
-      // Tentar localStorage primeiro - SALVA EM AMBAS AS CHAVES
+      // 1. Salvar no Supabase (PRINCIPAL - sincroniza todos os computadores)
+      try {
+        console.log("📤 Enviando para Supabase...");
+        const { error: supError } = await supabase.from("shared_file").upsert({
+          id: "shared", // Sempre usa o mesmo ID para ter apenas um arquivo
+          file_data: serialized,
+          filename: file.name,
+          uploaded_by: username,
+          total_records: idx.records.length,
+          unique_brs: totalUniqueBRs,
+          updated_at: new Date().toISOString(),
+        });
+
+        if (supError) {
+          console.warn("⚠️ Erro ao salvar no Supabase:", supError.message);
+        } else {
+          console.log("✅ Arquivo salvo no Supabase (sincronizado para todos os computadores)");
+        }
+      } catch (err) {
+        console.error("❌ Erro ao conectar Supabase:", err);
+      }
+
+      // 2. Salvar em localStorage como fallback/cache local
       let savedToLocalStorage = false;
       try {
-        // Salva na chave COMPARTILHADA (todos verão)
+        // Salva na chave COMPARTILHADA (para compatibilidade com abas do mesmo PC)
         localStorage.setItem(sharedStorageKey, serialized);
         // Salva também na chave individual (para compatibilidade)
         localStorage.setItem(userStorageKey, serialized);
-        console.log("✅ Arquivo salvo em localStorage (compartilhado e individual)");
+        console.log("✅ Arquivo salvo em localStorage (cache local)");
         savedToLocalStorage = true;
       } catch (storageError: any) {
         if (storageError.name === 'QuotaExceededError') {
@@ -293,18 +351,18 @@ const Index = () => {
           console.error("❌ Erro ao salvar em localStorage:", storageError);
         }
       }
-      
-      // Se localStorage falhou, salvar em IndexedDB
+
+      // 3. Se localStorage falhou, salvar em IndexedDB
       if (!savedToLocalStorage) {
         console.log("💾 Tentando salvar em IndexedDB...");
         const savedToIndexedDB = await saveToIndexedDB(username, serialized);
         if (savedToIndexedDB) {
-          toast.success(`${idx.records.length.toLocaleString()} registros carregados! (Armazenamento: IndexedDB)`);
+          toast.success(`${idx.records.length.toLocaleString()} registros carregados! (Sincronizado com Supabase)`);
         } else {
-          toast.warning(`${idx.records.length.toLocaleString()} registros carregados, mas sem persistência.`);
+          toast.warning(`${idx.records.length.toLocaleString()} registros carregados (apenas no Supabase).`);
         }
       } else {
-        toast.success(`${idx.records.length.toLocaleString()} registros carregados com sucesso!`);
+        toast.success(`${idx.records.length.toLocaleString()} registros carregados! ✅ Sincronizado com todos os computadores`);
       }
       
       setResults([]);
