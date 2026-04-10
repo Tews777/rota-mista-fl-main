@@ -155,6 +155,34 @@ const Index = () => {
       setUsernameLoaded(true);
     };
     loadData();
+
+    // Listener para detectar quando outro usuário faz upload em outra aba
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "shared_routeIndex" && e.newValue) {
+        console.log("🔄 Detectado arquivo compartilhado atualizado em outra aba!");
+        try {
+          const deserialized = deserializeRouteIndex(e.newValue);
+          if (
+            deserialized &&
+            deserialized.indexBR &&
+            deserialized.indexBR instanceof Map &&
+            deserialized.indexBR.size > 0
+          ) {
+            console.log("✅ Recarregando arquivo compartilhado:", { brsUnicos: deserialized.indexBR.size });
+            setIndex(deserialized);
+            setTotalBRsInFile(deserialized.indexBR.size);
+            const uniqueRoutes = new Set(deserialized.records.map((r: any) => r.Gaiola));
+            setTotalUniqueRoutes(uniqueRoutes.size);
+            toast.success("📁 Arquivo atualizado em tempo real!");
+          }
+        } catch (err) {
+          console.error("❌ Erro ao recarregar arquivo:", err);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const handleClearCache = useCallback(async () => {
