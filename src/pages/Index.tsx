@@ -89,11 +89,16 @@ const Index = () => {
         console.error("Erro ao carregar histórico:", error);
       }
 
-      // Load uploaded file from localStorage usando chave do username
-      const storageKey = `${username}_routeIndex`;
-      let savedIndex = localStorage.getItem(storageKey);
+      // Load uploaded file from localStorage
+      // Tenta primeiro a chave COMPARTILHADA, depois a individual (compatibilidade)
+      let savedIndex = localStorage.getItem("shared_routeIndex");
+      const userStorageKey = `${username}_routeIndex`;
       
-      console.log("🔍 Tentando carregar arquivo:", { username, storageKey, temDados: !!savedIndex });
+      if (!savedIndex) {
+        savedIndex = localStorage.getItem(userStorageKey);
+      }
+      
+      console.log("🔍 Tentando carregar arquivo:", { username, compartilhado: !!localStorage.getItem("shared_routeIndex"), individual: !!localStorage.getItem(userStorageKey), temDados: !!savedIndex });
       
       // Se não encontrar no localStorage, tenta IndexedDB
       if (!savedIndex) {
@@ -123,7 +128,8 @@ const Index = () => {
             setTotalUniqueRoutes(uniqueRoutes.size);
           } else {
             console.warn("❌ Index inválido. Removendo.");
-            localStorage.removeItem(storageKey);
+            localStorage.removeItem("shared_routeIndex");
+            localStorage.removeItem(userStorageKey);
             await removeFromIndexedDB(username);
             setIndex(null);
             setTotalBRsInFile(0);
@@ -131,7 +137,8 @@ const Index = () => {
           }
         } catch (e) {
           console.error("❌ Erro ao desserializar index:", e);
-          localStorage.removeItem(storageKey);
+          localStorage.removeItem("shared_routeIndex");
+          localStorage.removeItem(userStorageKey);
           await removeFromIndexedDB(username);
           setIndex(null);
           setTotalBRsInFile(0);
@@ -152,9 +159,11 @@ const Index = () => {
 
   const handleClearCache = useCallback(async () => {
     const username = usernameRef.current || "guest";
-    const storageKey = `${username}_routeIndex`;
-    console.log("🗑️ Limpando cache:", { username, storageKey });
-    localStorage.removeItem(storageKey);
+    const userStorageKey = `${username}_routeIndex`;
+    console.log("🗑️ Limpando cache:", { username, userStorageKey });
+    // Remove ambas as chaves
+    localStorage.removeItem("shared_routeIndex");
+    localStorage.removeItem(userStorageKey);
     await removeFromIndexedDB(username);
     setIndex(null);
     setResults([]);
@@ -167,10 +176,11 @@ const Index = () => {
 
   const handleClearAllData = useCallback(async () => {
     const username = usernameRef.current || "guest";
-    const storageKey = `${username}_routeIndex`;
+    const userStorageKey = `${username}_routeIndex`;
     
-    // Limpa arquivo em cache (per-user)
-    localStorage.removeItem(storageKey);
+    // Limpa arquivo em cache (ambas as chaves)
+    localStorage.removeItem("shared_routeIndex");
+    localStorage.removeItem(userStorageKey);
     await removeFromIndexedDB(username);
     setIndex(null);
     setResults([]);
@@ -231,18 +241,22 @@ const Index = () => {
       setTotalBRsInFile(totalUniqueBRs);
       
       // CRÍTICO: Usar sempre usernameRef.current
-      const storageKey = `${username}_routeIndex`;
+      const userStorageKey = `${username}_routeIndex`;
+      const sharedStorageKey = "shared_routeIndex";
       
-      // Save to localStorage using proper serialization (per-user)
+      // Save to localStorage using proper serialization
       const serialized = serializeRouteIndex(idx);
       
-      console.log("💾 Salvando arquivo:", { username, storageKey, tamanho: serialized.length, registros: idx.records.length });
+      console.log("💾 Salvando arquivo:", { username, chaveCompartilhada: sharedStorageKey, chaveIndividual: userStorageKey, tamanho: serialized.length, registros: idx.records.length });
       
-      // Tentar localStorage primeiro
+      // Tentar localStorage primeiro - SALVA EM AMBAS AS CHAVES
       let savedToLocalStorage = false;
       try {
-        localStorage.setItem(storageKey, serialized);
-        console.log("✅ Arquivo salvo em localStorage");
+        // Salva na chave COMPARTILHADA (todos verão)
+        localStorage.setItem(sharedStorageKey, serialized);
+        // Salva também na chave individual (para compatibilidade)
+        localStorage.setItem(userStorageKey, serialized);
+        console.log("✅ Arquivo salvo em localStorage (compartilhado e individual)");
         savedToLocalStorage = true;
       } catch (storageError: any) {
         if (storageError.name === 'QuotaExceededError') {
