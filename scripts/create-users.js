@@ -23,6 +23,16 @@ async function createUsers() {
       password: "analista02",
       displayName: "Analista 2",
     },
+    {
+      email: "analista03@floripa.local",
+      password: "analista03",
+      displayName: "Analista 3",
+    },
+    {
+      email: "analista04@floripa.local",
+      password: "analista04",
+      displayName: "Analista 4",
+    },
   ];
 
   for (const user of users) {

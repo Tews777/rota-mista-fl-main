@@ -10,6 +10,8 @@ import { toast } from "sonner";
 const VALID_USERS = [
   { username: "analista01", password: "analista01" },
   { username: "analista02", password: "analista02" },
+  { username: "analista03", password: "analista03" },
+  { username: "analista04", password: "analista04" },
 ];
 
 const Login = () => {
@@ -108,11 +110,19 @@ const Login = () => {
                 <p className="font-mono text-slate-200">analista02</p>
                 <p className="text-slate-400">senha: analista02</p>
               </div>
+              <div className="bg-slate-700 p-3 rounded">
+                <p className="font-mono text-slate-200">analista03</p>
+                <p className="text-slate-400">senha: analista03</p>
+              </div>
+              <div className="bg-slate-700 p-3 rounded">
+                <p className="font-mono text-slate-200">analista04</p>
+                <p className="text-slate-400">senha: analista04</p>
+              </div>
             </div>
           </div>
 
           <p className="text-xs text-slate-500 text-center">
-            O histórico é compartilhado entre os 2 usuários
+            O histórico é compartilhado entre os 4 usuários
           </p>
         </div>
       </Card>

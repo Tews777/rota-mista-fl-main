@@ -7,6 +7,8 @@ O sistema agora funciona com **usuário + senha** sem necessidade de email.
 Usuários válidos:
 - **analista01** / senha: **analista01**
 - **analista02** / senha: **analista02**
+- **analista03** / senha: **analista03**
+- **analista04** / senha: **analista04**
 
 ## Como Funciona
 
@@ -23,6 +25,8 @@ Para adicionar novos usuários, edite o arquivo `src/pages/Login.tsx`:
 const VALID_USERS = [
   { username: "analista01", password: "analista01" },
   { username: "analista02", password: "analista02" },
+  { username: "analista03", password: "analista03" },
+  { username: "analista04", password: "analista04" },
   { username: "novo_user", password: "nova_senha" }, // ← Adicione aqui
 ];
 ```
